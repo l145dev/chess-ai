@@ -25,6 +25,11 @@ The worst chess bot ever.
 pip install -r requirements.txt
 ```
 
+2. Set up `config.yml`
+
+- Remove `.example` suffix from `config.yml.example`
+- Get token from [lichess](https://lichess.org/) and input it in `token` field in `config.yml` file
+
 2. Run the bot
 
 - **Windows**:
