@@ -19,6 +19,11 @@ The worst chess bot ever.
 
 ## Getting Started
 
+0. Prerequisites
+
+- Have [Python 3.6+](https://www.python.org/) installed with cmd availability `python` or `python3`
+- Install a dataset from [lichess database](https://database.lichess.org/#standard_games) and place it in `data` folder
+
 1. Install dependencies:
 
 ```
