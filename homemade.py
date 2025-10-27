@@ -9,7 +9,7 @@ import random
 from lib.engine_wrapper import MinimalEngine
 from lib.lichess_types import MOVE, HOMEMADE_ARGS_TYPE
 import logging
-# from engines.bot.main import get_move
+from engines.bot.main import get_move
 
 
 # Use this logger variable to print messages to the console or log files.
@@ -21,6 +21,16 @@ logger = logging.getLogger(__name__)
 class ExampleEngine(MinimalEngine):
     """An example engine that all homemade engines inherit."""
 
+
+# Custom Random Engine
+class PyBot(ExampleEngine):
+    def search(self, board: chess.Board, limits=None, ponder=False, draw_offered=False, info=None) -> PlayResult:
+        print("GETTING MOVE!")
+        
+        move = get_move(board)
+
+        return PlayResult(move, None)
+
 # Minimax engine
 # class PyBot(ExampleEngine):
 #     def search(self, board: chess.Board, time_limit: Limit, ponder: bool, draw_offered: bool, root_moves: MOVE) -> PlayResult:
@@ -29,6 +39,7 @@ class ExampleEngine(MinimalEngine):
 #         move = get_move(board, 4)
 
 #         return PlayResult(move, None)
+
 
 # Bot names and ideas from tom7's excellent eloWorld video
 

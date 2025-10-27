@@ -10,6 +10,8 @@ The worst chess bot ever.
 - requests~=2.32
 - backoff~=2.2
 - rich~=14.1
+- torch>=2.0.0
+- numpy~=1.26
 
 ## Technologies
 
