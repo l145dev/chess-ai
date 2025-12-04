@@ -7,29 +7,35 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class ChessDataset(Dataset):
+class ChessDataset(torch.utils.data.IterableDataset):
     def __init__(self, pgn_file, max_games=None):
-        self.samples = []
         self.pgn_file = pgn_file
         self.max_games = max_games
-        self.load_data()
 
-    def load_data(self):
-        print(f"Loading games from {self.pgn_file}...")
+    def __iter__(self):
+        worker_info = torch.utils.data.get_worker_info()
+        if worker_info is not None:
+            # Multi-worker support is complex for PGN, sticking to single worker for now.
+            pass
+        
+        print(f"Streaming games from {self.pgn_file}...")
         pgn = open(self.pgn_file)
         game_count = 0
         
         while True:
             if self.max_games and game_count >= self.max_games:
                 break
-                
+            
             offset = pgn.tell()
-            headers = chess.pgn.read_headers(pgn)
-            if headers is None:
+            try:
+                game = chess.pgn.read_game(pgn)
+            except Exception:
                 break
-                
-            # Skip games without result or with unknown result
-            result_str = headers.get("Result", "*")
+            
+            if game is None:
+                break
+            
+            result_str = game.headers.get("Result", "*")
             if result_str == "1-0":
                 result = 1.0
             elif result_str == "0-1":
@@ -38,37 +44,18 @@ class ChessDataset(Dataset):
                 result = 0.5
             else:
                 continue
-
-            # Parse the full game
-            pgn.seek(offset)
-            game = chess.pgn.read_game(pgn)
-            
+                
             board = game.board()
             for move in game.mainline_moves():
                 board.push(move)
-                # We can store the FEN or the board object. 
-                # Storing FEN is safer for memory if we have many positions, 
-                # but we need to re-parse it. 
-                # For MVP with limited data, let's store a compact representation or just parse on the fly?
-                # Re-parsing FEN is slow.
-                # Let's store the board's relevant info for HalfKP:
-                # (occupied_co, pieces, turn, castling_rights, ep_square)
-                # Actually, python-chess board copy is okay?
-                self.samples.append((board.copy(), result))
+                features = get_halfkp_features(board)
+                yield torch.tensor(features, dtype=torch.long), torch.tensor([result], dtype=torch.float32)
             
             game_count += 1
             if game_count % 100 == 0:
-                print(f"Loaded {game_count} games, {len(self.samples)} positions.")
-
-        print(f"Finished loading. Total positions: {len(self.samples)}")
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        board, result = self.samples[idx]
-        features = get_halfkp_features(board)
-        return torch.tensor(features, dtype=torch.long), torch.tensor([result], dtype=torch.float32)
+                print(f"Streamed {game_count} games.")
+        
+        pgn.close()
 
 def get_halfkp_features(board: chess.Board):
     """

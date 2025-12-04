@@ -50,9 +50,19 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
 
 2.  **Running the Bot**:
     The bot is integrated into `homemade.py`. You can start it using the provided PowerShell script:
+
+    - **PowerShell**:
+
     ```powershell
     pwsh start_bot.ps1
     ```
+
+    - **Bash**:
+
+    ```bash
+    ./start_bot.sh
+    ```
+
     This script sets up the environment and runs `lichess-bot.py`, which uses the `PyBot` class in `homemade.py`, which in turn calls `engines.bot.main.get_move`.
 
 ### Requirements
@@ -61,3 +71,9 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
 - `torch` (with CUDA recommended for training)
 - `python-chess`
 - `numpy`
+
+### Next Steps
+
+- Train on the full dataset for better performance.
+- Implement incremental updates for the Feature Transformer (true NNUE) for speed.
+- Add search (Alpha-Beta) instead of 1-ply lookahead.

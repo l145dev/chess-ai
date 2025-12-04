@@ -32,9 +32,11 @@ def train():
         print(f"PGN file not found at {pgn_path}")
         return
 
-    # Load a subset of games for MVP training
-    dataset = ChessDataset(pgn_path, max_games=5000) 
-    dataloader = DataLoader(dataset, batch_size=1024, shuffle=True, collate_fn=collate_fn)
+    # Load dataset with streaming
+    # max_games=None means read the whole file
+    dataset = ChessDataset(pgn_path, max_games=None) 
+    # shuffle=True is not supported for IterableDataset
+    dataloader = DataLoader(dataset, batch_size=1024, collate_fn=collate_fn)
     
     model = NNUE().to(device)
     optimizer = optim.Adam(model.parameters(), lr=0.001)
