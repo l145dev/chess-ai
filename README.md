@@ -18,6 +18,7 @@ The worst chess bot ever.
 - Python
 - Chess
 - Lichess
+- PyTorch
 
 ## Getting Started
 
