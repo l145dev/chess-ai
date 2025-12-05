@@ -8,27 +8,29 @@ This is a custom chess engine powered by a Multi-Layer Perceptron (MLP) with an 
 
 ### Architecture
 
-The model uses a simplified **HalfKP** feature set and a standard NNUE architecture:
+The model uses a standard NNUE architecture with **HalfKP** features:
 
 1.  **Input**:
 
     - **HalfKP Features**: The board is represented by the interaction between the friendly King and every other piece on the board.
     - **Feature Indexing**: `KingSquare * 640 + PieceSquare * 10 + PieceType`.
-    - Total features: ~41k sparse inputs.
+    - Total features: ~41k sparse inputs per perspective.
 
 2.  **Feature Transformer**:
 
     - **EmbeddingBag**: Efficiently sums the weights of active features.
-    - Projects the sparse input into a dense 256-dimensional vector.
+    - Projects the sparse input into a dense 256-dimensional vector for each perspective ("us" and "them").
 
 3.  **Network Layers**:
-    - **Hidden Layers**: 256 -> 32 -> 32.
+    - **Input**: Concatenation of the two 256-dim accumulators (512 inputs).
+    - **Hidden Layers**: 512 -> 32 -> 32.
     - **Output**: 1 neuron (Evaluation score).
     - **Activation**: `ClippedReLU` (clamped between 0 and 1).
 
 ### Features
 
 - **NNUE Architecture**: Efficiently Updatable Neural Network for fast evaluation.
+- **Dual Accumulators**: Maintains and updates feature accumulators for both White and Black perspectives incrementally.
 - **Incremental Updates**: Calculates feature deltas (added/removed pieces) to update the accumulator instead of recomputing from scratch.
 - **Alpha-Beta Search**: Implements a depth-limited search (currently depth 3) with alpha-beta pruning.
 - **Preprocessed Data**: Uses a compressed sparse row format for efficient data loading during training.
@@ -42,7 +44,8 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
 - **`model.py`**: Defines the `NNUE` PyTorch model.
   - `NNUE`: The main model class.
   - `update_accumulator`: Efficiently updates the feature transformer state.
-- **`preprocess.py`**: Converts PGN games into efficient preprocessed chunks.
+- **`preprocess.py`**: Converts PGN games into efficient preprocessed chunks with dual-perspective features.
+- **`filter_pgn.py`**: Filters raw PGN datasets based on ELO, Time Control, and Move Count.
 - **`train.py`**: Training script.
   - Uses `PreprocessedDataset` to train the model on the precomputed data.
   - Saves the model to `engines/bot/model/mlp_model.pth`.
@@ -52,8 +55,17 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
 
 ### Usage
 
-1.  **Preprocessing**:
-    To preprocess the PGN data, run:
+1.  **Data Preparation**:
+    If you have a raw PGN file (`data/lichess_db_raw.pgn`), you can filter it first:
+
+    ```bash
+    python engines/bot/filter_pgn.py
+    ```
+
+    This creates `data/lichess_db.pgn`.
+
+2.  **Preprocessing**:
+    To preprocess the PGN data into training chunks, run:
 
     ```bash
     python -m engines.bot.preprocess
@@ -61,16 +73,16 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
 
     This will create a directory `data/processed_chunks` containing the preprocessed data.
 
-2.  **Training**:
+3.  **Training**:
     To retrain the model, run:
 
     ```bash
     python -m engines.bot.train
     ```
 
-    Ensure you have the PGN data in `data/lichess_db.pgn`.
+    This saves the trained model to `engines/bot/model/mlp_model.pth`.
 
-3.  **Running the Bot**:
+4.  **Running the Bot**:
     The bot is integrated into `homemade.py`. You can start it using the provided PowerShell script:
 
     - **PowerShell**:
