@@ -7,7 +7,7 @@ from engines.bot.dataset import get_halfkp_features, get_feature_deltas
 
 # Setup & Config
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model_path = os.path.join(os.path.dirname(__file__), "mlp_model.pth")
+model_path = os.path.join(os.path.dirname(__file__), "model", "mlp_model.pth")
 
 # Load Model globally once
 model = NNUE().to(device)

@@ -80,9 +80,9 @@ def train():
         print(f"Epoch {epoch+1}/{epochs}, Loss: {avg_loss:.6f}")
         
     # Ensure directory exists
-    os.makedirs("engines/bot", exist_ok=True)
-    torch.save(model.state_dict(), "engines/bot/mlp_model.pth")
-    print("Model saved to engines/bot/mlp_model.pth")
+    os.makedirs("engines/bot/model", exist_ok=True)
+    torch.save(model.state_dict(), "engines/bot/model/mlp_model.pth")
+    print("Model saved to engines/bot/model/mlp_model.pth")
 
 if __name__ == "__main__":
     train()

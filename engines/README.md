@@ -45,7 +45,9 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
 - **`preprocess.py`**: Converts PGN games into efficient preprocessed chunks.
 - **`train.py`**: Training script.
   - Uses `PreprocessedDataset` to train the model on the precomputed data.
+  - Saves the model to `engines/bot/model/mlp_model.pth`.
 - **`main.py`**: The engine interface.
+  - Loads the model from `engines/bot/model/mlp_model.pth`.
   - `get_move(board)`: Performs Alpha-Beta search with incremental updates to find the best move.
 
 ### Usage
