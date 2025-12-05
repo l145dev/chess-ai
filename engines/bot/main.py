@@ -77,7 +77,19 @@ def evaluate(acc_white, acc_black, turn):
 
 # Search Logic
 def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
+    # Draw detection, avoids infinite repetition
+    if board.is_repetition(2) or board.is_fifty_moves() or board.is_insufficient_material():
+        return 0.0
+
+    # Base case
     if depth == 0 or board.is_game_over():
+        # If is_game_over is True here, it's likely Checkmate or Stalemate
+        if board.is_checkmate():
+            # Large negative score because the side to move has been mated
+            return -99999.0 + depth # +depth favors faster mates
+        if board.is_stalemate():
+            return 0.0
+            
         return evaluate(acc_w, acc_b, board.turn)
 
     legal_moves = list(board.legal_moves)

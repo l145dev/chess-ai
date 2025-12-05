@@ -40,8 +40,10 @@ class PreprocessedDataset(torch.utils.data.IterableDataset):
                 # Load the optimized Flat + Offset dictionary
                 data = torch.load(chunk_path)
                 
-                indices = data['indices']
-                offsets = data['offsets']
+                indices_us = data['indices_us']
+                offsets_us = data['offsets_us']
+                indices_them = data['indices_them']
+                offsets_them = data['offsets_them']
                 values = data['values']
                 
                 num_samples = len(values)
@@ -51,17 +53,20 @@ class PreprocessedDataset(torch.utils.data.IterableDataset):
                 
                 # Loop through the chunk and reconstruct individual samples
                 for i in sample_order:
-                    start = offsets[i]
-                    end = offsets[i+1]
+                    # US
+                    start_us = offsets_us[i]
+                    end_us = offsets_us[i+1]
+                    sample_indices_us = indices_us[start_us:end_us].long() 
                     
-                    # Slice the 1D array to get the features for this specific board
-                    # .long() is usually required for Embedding layers
-                    sample_indices = indices[start:end].long() 
+                    # THEM
+                    start_them = offsets_them[i]
+                    end_them = offsets_them[i+1]
+                    sample_indices_them = indices_them[start_them:end_them].long()
                     
                     # Get label
                     label = values[i:i+1] 
                     
-                    yield sample_indices, label
+                    yield sample_indices_us, sample_indices_them, label
                     
             except Exception as e:
                 print(f"Error loading chunk {chunk_file}: {e}")

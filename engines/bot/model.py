@@ -17,7 +17,8 @@ class NNUE(nn.Module):
         self.feature_transformer = nn.EmbeddingBag(feature_count, hidden_dim, mode='sum')
         
         # Network
-        self.l1 = nn.Linear(hidden_dim, 32)
+        # Input to l1 is now hidden_dim * 2 because we concat [us, them]
+        self.l1 = nn.Linear(hidden_dim * 2, 32)
         self.l2 = nn.Linear(32, 32)
         self.output = nn.Linear(32, 1)
         
@@ -40,15 +41,20 @@ class NNUE(nn.Module):
         # If we use a custom collate_fn, we can pass (indices, offsets).
         pass
 
-    def forward_with_offsets(self, indices, offsets):
+    def forward_with_offsets(self, indices_us, offsets_us, indices_them, offsets_them):
         # indices: 1D tensor of all active indices in the batch
         # offsets: 1D tensor of starting indices for each sample
         
-        x = self.feature_transformer(indices, offsets)
-        return self.forward_network(x)
+        acc_us = self.feature_transformer(indices_us, offsets_us)
+        acc_them = self.feature_transformer(indices_them, offsets_them)
+        
+        return self.forward_network(acc_us, acc_them)
 
-    def forward_network(self, accumulator):
-        x = self.activation(accumulator)
+    def forward_network(self, acc_us, acc_them):
+        # Concatenate [us, them]
+        x = torch.cat([acc_us, acc_them], dim=1)
+        
+        x = self.activation(x)
         
         x = self.l1(x)
         x = self.activation(x)

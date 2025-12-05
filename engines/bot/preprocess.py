@@ -15,17 +15,17 @@ CHUNK_SIZE = 1000000 # estimated 1.5gb RAM per chunks
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def save_chunk(flat_features, offsets, labels, chunk_id):
+def save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk_id):
     """
     Saves data in a 'Compressed Sparse Row' (CSR) style format.
     """
     data = {
         # 1. The giant 1D list of all feature indices
-        "indices": torch.tensor(flat_features, dtype=torch.int32),
+        "indices_us": torch.tensor(indices_us, dtype=torch.int32),
+        "offsets_us": torch.tensor(offsets_us, dtype=torch.int32),
         
-        # 2. Where each game starts in the indices list
-        # We assume offsets[i] is start, offsets[i+1] is end
-        "offsets": torch.tensor(offsets, dtype=torch.int32),
+        "indices_them": torch.tensor(indices_them, dtype=torch.int32),
+        "offsets_them": torch.tensor(offsets_them, dtype=torch.int32),
         
         # 3. The scores
         "values": torch.tensor(labels, dtype=torch.float32)
@@ -33,15 +33,19 @@ def save_chunk(flat_features, offsets, labels, chunk_id):
     
     path = f"{OUTPUT_DIR}/chunk_{chunk_id}.pt"
     torch.save(data, path)
-    print(f"Saved chunk {chunk_id}: {len(labels)} positions, {len(flat_features)} features.")
+    print(f"Saved chunk {chunk_id}: {len(labels)} positions.")
 
 def parse_and_save():
     print(f"Parsing {PGN_PATH}...")
     pgn = open(PGN_PATH)
     
     # Storage buffers
-    flat_features = [] # One giant list of integers
-    offsets = [0]      # Pointers to where each sample starts
+    indices_us = [] 
+    offsets_us = [0]
+    
+    indices_them = []
+    offsets_them = [0]
+    
     labels = []        # Scores
     
     chunk_id = 0
@@ -66,16 +70,15 @@ def parse_and_save():
         for move in game.mainline_moves():
             board.push(move)
             
-            # Get Features
-            # returns list of ints, e.g. [10, 500, 3022...]
-            feats = get_halfkp_features(board) 
+            # Get Features for US (side to move)
+            feats_us = get_halfkp_features(board, perspective=board.turn)
+            indices_us.extend(feats_us)
+            offsets_us.append(len(indices_us))
             
-            # Add to Flat List
-            flat_features.extend(feats)
-            
-            # Update Offset
-            # The next position will start at the current length of flat_features
-            offsets.append(len(flat_features))
+            # Get Features for THEM (opponent)
+            feats_them = get_halfkp_features(board, perspective=not board.turn)
+            indices_them.extend(feats_them)
+            offsets_them.append(len(indices_them))
             
             # Add Label
             if board.turn == chess.WHITE:
@@ -85,11 +88,13 @@ def parse_and_save():
             
             # Check Buffer
             if len(labels) >= CHUNK_SIZE:
-                save_chunk(flat_features, offsets, labels, chunk_id)
+                save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk_id)
                 
                 # Reset buffers
-                flat_features = []
-                offsets = [0]
+                indices_us = []
+                offsets_us = [0]
+                indices_them = []
+                offsets_them = [0]
                 labels = []
                 chunk_id += 1
                 
@@ -99,7 +104,7 @@ def parse_and_save():
 
     # Save remaining data
     if len(labels) > 0:
-        save_chunk(flat_features, offsets, labels, chunk_id)
+        save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk_id)
         
     print(f"\nFinished! Processed {game_count} games.")
 

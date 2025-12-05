@@ -11,32 +11,46 @@ def collate_fn(batch):
     Custom collate function to handle variable-length sequences (sparse features).
     
     Args:
-        batch: List of tuples (indices, label) yielded by the dataset
+        batch: List of tuples (indices_us, indices_them, label) yielded by the dataset
     
     Returns:
-        batch_indices: 1D tensor of all features in the batch concatenated
-        batch_offsets: 1D tensor of where each sample starts in batch_indices
+        batch_indices_us: 1D tensor
+        batch_offsets_us: 1D tensor
+        batch_indices_them: 1D tensor
+        batch_offsets_them: 1D tensor
         batch_labels: 1D tensor of labels
     """
-    indices_list = []
+    indices_us_list = []
+    indices_them_list = []
     labels_list = []
-    offsets_list = [0]
-    current_offset = 0
     
-    for indices, label in batch:
-        indices_list.append(indices)
+    offsets_us_list = [0]
+    current_offset_us = 0
+    
+    offsets_them_list = [0]
+    current_offset_them = 0
+    
+    for indices_us, indices_them, label in batch:
+        indices_us_list.append(indices_us)
+        indices_them_list.append(indices_them)
         labels_list.append(label)
         
-        current_offset += len(indices)
-        offsets_list.append(current_offset)
+        current_offset_us += len(indices_us)
+        offsets_us_list.append(current_offset_us)
+        
+        current_offset_them += len(indices_them)
+        offsets_them_list.append(current_offset_them)
         
     # Concatenate everything into batch tensors
-    batch_indices = torch.cat(indices_list)
-    batch_labels = torch.cat(labels_list)
-    # Remove last offset because pytorch embeddingbag breaks without it idk why tbh, probably intentional behavior for some use cases
-    batch_offsets = torch.tensor(offsets_list[:-1], dtype=torch.long) # .long() for embeddingbag
+    batch_indices_us = torch.cat(indices_us_list)
+    batch_offsets_us = torch.tensor(offsets_us_list[:-1], dtype=torch.long)
     
-    return batch_indices, batch_offsets, batch_labels
+    batch_indices_them = torch.cat(indices_them_list)
+    batch_offsets_them = torch.tensor(offsets_them_list[:-1], dtype=torch.long)
+    
+    batch_labels = torch.cat(labels_list)
+    
+    return batch_indices_us, batch_offsets_us, batch_indices_them, batch_offsets_them, batch_labels
 
 def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -62,13 +76,15 @@ def train():
         model.train()
         total_loss = 0
         batch_count = 0
-        for indices, offsets, labels in dataloader:
-            indices = indices.to(device)
-            offsets = offsets.to(device)
+        for indices_us, offsets_us, indices_them, offsets_them, labels in dataloader:
+            indices_us = indices_us.to(device)
+            offsets_us = offsets_us.to(device)
+            indices_them = indices_them.to(device)
+            offsets_them = offsets_them.to(device)
             labels = labels.to(device)
             
             optimizer.zero_grad()
-            outputs = model.forward_with_offsets(indices, offsets)
+            outputs = model.forward_with_offsets(indices_us, offsets_us, indices_them, offsets_them)
             loss = criterion(outputs.squeeze(), labels.squeeze())
             loss.backward()
             optimizer.step()
