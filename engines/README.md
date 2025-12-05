@@ -45,7 +45,6 @@ The model uses a standard NNUE architecture with **HalfKP** features:
   - `NNUE`: The main model class.
   - `update_accumulator`: Efficiently updates the feature transformer state.
 - **`preprocess.py`**: Converts PGN games into efficient preprocessed chunks with dual-perspective features.
-- **`filter_pgn.py`**: Filters raw PGN datasets based on ELO, Time Control, and Move Count.
 - **`train.py`**: Training script.
   - Uses `PreprocessedDataset` to train the model on the precomputed data.
   - Saves the model to `engines/bot/model/mlp_model.pth`.
@@ -56,10 +55,12 @@ The model uses a standard NNUE architecture with **HalfKP** features:
 ### Usage
 
 1.  **Data Preparation**:
-    If you have a raw PGN file (`data/lichess_db_raw.pgn`), you can filter it first:
+    If you have a raw PGN file (`data/lichess_db_raw.pgn`), you should use the high-performance C# tool in `data/process_data` to filter it. Find more information in [data/process_data/README.md](../data/process_data/README.md).
+
+    Navigate to `data/process_data` and run:
 
     ```bash
-    python engines/bot/filter_pgn.py
+    dotnet run -c Release
     ```
 
     This creates `data/lichess_db.pgn`.
@@ -106,9 +107,3 @@ The model uses a standard NNUE architecture with **HalfKP** features:
 - `python-chess`
 - `numpy`
 - `tqdm`
-
-### Next Steps
-
-- Implement iterative deepening for better time management.
-- Add a transposition table to cache search results.
-- Tune search parameters and move ordering.

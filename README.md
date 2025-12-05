@@ -1,53 +1,94 @@
-# Chess AI
+# Lichess Bot with NNUE Engine
 
-The worst chess bot ever.
+A custom chess bot designed for Lichess, powered by a hybrid Python/C# architecture. It features a custom NNUE (Efficiently Updatable Neural Network) evaluation engine and a high-performance C# data processing pipeline.
 
-## Requirements
+## Features
 
-- Python 3.6+
-- chess~=1.11
-- PyYAML~=6.0
-- requests~=2.32
-- backoff~=2.2
-- rich~=14.1
-- torch>=2.0.0
-- numpy~=1.26
+- **Custom NNUE Engine**: Implements a HalfKP architecture with dual accumulators for efficient evaluation.
+- **High-Performance Data Processing**: Uses a dedicated C# tool (.NET 9.0) to filter massive PGN datasets (100GB+) in minutes.
+- **Alpha-Beta Search**: Depth-limited search with alpha-beta pruning.
+- **Lichess Integration**: Connects directly to Lichess via API using `lichess-bot`.
 
-## Technologies
+## Project Structure
 
-- Python
-- Chess
-- Lichess
-- PyTorch
+- **`engines/`**: Contains the chess engine implementations.
+  - **`bot/`**: The main NNUE bot (Python).
+  - [Read more](engines/README.md)
+- **`data/process_data/`**: The C# tool for filtering raw PGN data.
+  - [Read more](data/process_data/README.md)
+- **`lib/`**: Shared libraries and utilities.
 
-## Getting Started
+## Prerequisites
 
-0. Prerequisites
+- **Python 3.6+**
+- **.NET SDK** (for data processing)
+- **Lichess Account** (for API token)
 
-- Have [Python 3.6+](https://www.python.org/) installed with cmd availability `python` or `python3`
-- Install a dataset from [lichess database](https://database.lichess.org/#standard_games) and place it in `data` folder
+## Installation
 
-1. Install dependencies:
+1.  **Clone the repository**:
 
-```
-pip install -r requirements.txt
-```
+    ```bash
+    git clone https://github.com/l145dev/chess-ai.git
+    cd chess-ai
+    ```
 
-2. Set up `config.yml`
+2.  **Install Python dependencies**:
 
-- Remove `.example` suffix from `config.yml.example`
-- Get token from [lichess](https://lichess.org/) and input it in `token` field in `config.yml` file
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-2. Run the bot
+3.  **Configure the bot**:
+    - Copy `config.yml.example` to `config.yml`.
+    - Add your Lichess API token to `config.yml`.
 
-- **Windows**:
+## Usage Workflow
 
-```bash
-pwsh start_bot.ps1
-```
+### 1. Data Preparation (C#)
 
-- **Linux/MacOS (Untested)**:
+Before training, filter your raw PGN data using the high-performance C# tool.
 
-```bash
-./start_bot.sh
-```
+1.  Place your raw PGN file at `data/lichess_db_raw.pgn`.
+2.  Run the filter tool:
+    ```bash
+    cd data/process_data
+    dotnet run -c Release
+    ```
+3.  This generates `data/lichess_db.pgn`.
+
+### 2. Training (Python)
+
+Train the NNUE model using the filtered data.
+
+1.  **Preprocess**:
+    ```bash
+    python -m engines.bot.preprocess
+    ```
+2.  **Train**:
+    ```bash
+    python -m engines.bot.train
+    ```
+
+### 3. Running the Bot
+
+Start the bot to connect to Lichess and play games.
+
+- **Windows (PowerShell)**:
+
+  ```powershell
+  pwsh start_bot.ps1
+  ```
+
+- **Linux/macOS**:
+  ```bash
+  ./start_bot.sh
+  ```
+
+## License
+
+MIT
+
+## Author
+
+- **Aryan Shah** - [GitHub](https://github.com/l145dev)
