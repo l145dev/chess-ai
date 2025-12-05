@@ -1,0 +1,12 @@
+*.yml
+!lib/versioning.yml
+**/__pycache__
+lichess_bot_auto_logs/*
+.vscode/*
+.vs/*
+*.pgn
+*.pt
+*.pth
+*.log
+TEMP/*
+engines/bot/model/*
