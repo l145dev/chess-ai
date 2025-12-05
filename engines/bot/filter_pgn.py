@@ -2,12 +2,15 @@ import chess.pgn
 import sys
 import os
 
+# Note: This script will be slow in Python, I recommend using a faster language like C#
+
 # Settings
 INPUT_PGN = "data/lichess_db_raw.pgn"
 OUTPUT_PGN = "data/lichess_db.pgn"
 
-MIN_TIME_CONTROL = 180 # seconds
-MIN_AVG_ELO = 1600
+# Strict filtering to get that file size down
+MIN_TIME_CONTROL = 180 
+MIN_AVG_ELO = 1800
 MIN_MOVES = 20
 
 def filter_pgn():
@@ -16,91 +19,75 @@ def filter_pgn():
         return
 
     print(f"Filtering {INPUT_PGN} -> {OUTPUT_PGN}")
-    print(f"Criteria: TimeControl >= {MIN_TIME_CONTROL}s, Avg ELO > {MIN_AVG_ELO}, Moves > {MIN_MOVES}")
-
-    count_in = 0
-    count_out = 0
+    
+    count_total = 0
+    count_kept = 0
     
     with open(INPUT_PGN, "r") as f_in, open(OUTPUT_PGN, "w") as f_out:
         while True:
+            # Save current position so we can go back if the game is good
+            offset = f_in.tell()
+            
             try:
-                # read_headers is faster if we filter by headers, but we need move count too.
-                # read_game reads everything.
-                # To optimize, we can read headers first, check ELO/TC, then skip if fail.
-                # But chess.pgn doesn't support "skip rest of game" easily without reading it.
-                # Actually, read_game is fine for offline processing unless it's huge.
-                # If it's massive, we might want a custom parser or use chess.pgn.read_headers
-                # and then read_game only if headers pass.
-                
-                # Let's try read_game first.
-                offset = f_in.tell()
                 headers = chess.pgn.read_headers(f_in)
                 if headers is None:
-                    break
-                    
-                # 1. Check ELO
+                    break # End of file
+                
+                count_total += 1
+                
+                # Header Checks (Fast)
+                
+                # Check ELO
                 try:
-                    white_elo = int(headers.get("WhiteElo", 0))
-                    black_elo = int(headers.get("BlackElo", 0))
-                    avg_elo = (white_elo + black_elo) / 2
-                    if avg_elo <= MIN_AVG_ELO:
-                        count_in += 1
-                        continue # Skip
+                    w_elo = int(headers.get("WhiteElo", 0))
+                    b_elo = int(headers.get("BlackElo", 0))
+                    if (w_elo + b_elo) / 2 < MIN_AVG_ELO:
+                        # CRITICAL FIX: Skip the moves of this bad game!
+                        chess.pgn.skip_game(f_in) 
+                        continue
                 except ValueError:
-                    count_in += 1
+                    chess.pgn.skip_game(f_in)
                     continue
 
-                # 2. Check Time Control
-                # Format: "600+0", "180+2", "-"
-                tc = headers.get("TimeControl", "")
-                if tc == "" or tc == "-":
-                    # Assume correspondence or unknown, skip if we want strict blitz/rapid
-                    count_in += 1
+                # Check Time Control
+                tc = headers.get("TimeControl", "?")
+                if tc == "?" or tc == "-" or "+" not in tc:
+                    chess.pgn.skip_game(f_in)
                     continue
-                
+                    
                 try:
                     base_time = int(tc.split("+")[0])
                     if base_time < MIN_TIME_CONTROL:
-                        count_in += 1
+                        chess.pgn.skip_game(f_in)
                         continue
                 except ValueError:
-                    count_in += 1
+                    chess.pgn.skip_game(f_in)
                     continue
 
-                # If headers pass, we need to check move count.
-                # We need to parse the game now.
-                # seek back to read the full game? Or is there a way to continue?
-                # read_headers consumes headers. The file pointer is at the moves.
-                # We can use read_game but we need to seek back to offset.
+                # Full Game Checks (Slow, only for good headers)
+                
+                # If we are here, headers are good. Go back and read the full game.
                 f_in.seek(offset)
                 game = chess.pgn.read_game(f_in)
                 
-                # 3. Check Move Count
-                # mainline_moves() is an iterator, len() might not work directly without converting to list
-                # count moves
-                move_count = 0
-                for _ in game.mainline_moves():
-                    move_count += 1
-                    if move_count > MIN_MOVES:
-                        break
-                
-                if move_count <= MIN_MOVES:
-                    count_in += 1
+                # Check Move Count
+                # Creating a list consumes the iterator, giving us the length
+                if len(list(game.mainline_moves())) < MIN_MOVES:
                     continue
 
-                # All passed
-                print(game, file=f_out, end="\n\n")
-                count_out += 1
-                count_in += 1
+                # Save
+                exporter = chess.pgn.FileExporter(f_out)
+                game.accept(exporter)
+                count_kept += 1
                 
-                if count_in % 1000 == 0:
-                    print(f"Processed {count_in}, Saved {count_out}...", end='\r')
+                if count_total % 5000 == 0:
+                    print(f"Processed: {count_total} | Saved: {count_kept}", end='\r')
 
             except Exception as e:
-                print(f"Error processing game: {e}")
+                print(f"Skipping bad game due to error: {e}")
                 continue
 
-    print(f"\nFinished. Processed {count_in}, Saved {count_out}.")
+    print(f"\nDone. Processed {count_total}, Saved {count_kept}.")
 
 if __name__ == "__main__":
     filter_pgn()
