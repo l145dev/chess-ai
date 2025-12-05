@@ -26,29 +26,49 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
     - **Output**: 1 neuron (Evaluation score).
     - **Activation**: `ClippedReLU` (clamped between 0 and 1).
 
+### Features
+
+- **NNUE Architecture**: Efficiently Updatable Neural Network for fast evaluation.
+- **Incremental Updates**: Calculates feature deltas (added/removed pieces) to update the accumulator instead of recomputing from scratch.
+- **Alpha-Beta Search**: Implements a depth-limited search (currently depth 3) with alpha-beta pruning.
+- **Preprocessed Data**: Uses a compressed sparse row format for efficient data loading during training.
+
 ### Files
 
-- **`dataset.py`**: Handles PGN parsing and board encoding.
-  - `ChessDataset`: Loads games from PGN, extracts board positions, and computes HalfKP feature indices.
+- **`dataset.py`**: Handles data loading.
+  - `PreprocessedDataset`: Loads precomputed features/labels from `.pt` chunks.
+  - `get_halfkp_features`: Computes HalfKP feature indices.
+  - `get_feature_deltas`: Computes incremental changes for a move.
 - **`model.py`**: Defines the `NNUE` PyTorch model.
+  - `NNUE`: The main model class.
+  - `update_accumulator`: Efficiently updates the feature transformer state.
+- **`preprocess.py`**: Converts PGN games into efficient preprocessed chunks.
 - **`train.py`**: Training script.
-  - Loads data, initializes the model, and runs the training loop using CUDA (if available).
-  - Saves the trained model to `mlp_model.pth`.
+  - Uses `PreprocessedDataset` to train the model on the precomputed data.
 - **`main.py`**: The engine interface.
-  - `get_move(board)`: Generates legal moves, evaluates them using the trained model, and returns the best move.
+  - `get_move(board)`: Performs Alpha-Beta search with incremental updates to find the best move.
 
 ### Usage
 
-1.  **Training**:
+1.  **Preprocessing**:
+    To preprocess the PGN data, run:
+
+    ```bash
+    python -m engines.bot.preprocess
+    ```
+
+    This will create a directory `data/processed_chunks` containing the preprocessed data.
+
+2.  **Training**:
     To retrain the model, run:
 
     ```bash
     python -m engines.bot.train
     ```
 
-    Ensure you have the PGN data in `data/lichess_db_standard_rated_2013-01.pgn`.
+    Ensure you have the PGN data in `data/lichess_db.pgn`.
 
-2.  **Running the Bot**:
+3.  **Running the Bot**:
     The bot is integrated into `homemade.py`. You can start it using the provided PowerShell script:
 
     - **PowerShell**:
@@ -71,9 +91,10 @@ The model uses a simplified **HalfKP** feature set and a standard NNUE architect
 - `torch` (with CUDA recommended for training)
 - `python-chess`
 - `numpy`
+- `tqdm`
 
 ### Next Steps
 
-- Train on the full dataset for better performance.
-- Implement incremental updates for the Feature Transformer (true NNUE) for speed.
-- Add search (Alpha-Beta) instead of 1-ply lookahead.
+- Implement iterative deepening for better time management.
+- Add a transposition table to cache search results.
+- Tune search parameters and move ordering.

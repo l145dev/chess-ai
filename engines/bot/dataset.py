@@ -4,116 +4,78 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 import logging
+import os
+import random
 
 logger = logging.getLogger(__name__)
 
-class ChessDataset(torch.utils.data.IterableDataset):
-    def __init__(self, pgn_file, max_games=None):
-        self.pgn_file = pgn_file
-        self.max_games = max_games
-
+class PreprocessedDataset(torch.utils.data.IterableDataset):
+    def __init__(self, data_dir, shuffle=True):
+        self.data_dir = data_dir
+        self.chunk_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.pt')])
+        self.shuffle = shuffle
+        
     def __iter__(self):
         worker_info = torch.utils.data.get_worker_info()
+        
+        # Simple sharding for multi-worker
         if worker_info is not None:
-            # Multi-worker support is complex for PGN, sticking to single worker for now.
-            pass
-        
-        print(f"Streaming games from {self.pgn_file}...")
-        pgn = open(self.pgn_file)
-        game_count = 0
-        
-        while True:
-            if self.max_games and game_count >= self.max_games:
-                break
-            
-            offset = pgn.tell()
-            try:
-                game = chess.pgn.read_game(pgn)
-            except Exception:
-                break
-            
-            if game is None:
-                break
-            
-            result_str = game.headers.get("Result", "*")
-            if result_str == "1-0":
-                result = 1.0
-            elif result_str == "0-1":
-                result = 0.0
-            elif result_str == "1/2-1/2":
-                result = 0.5
-            else:
-                continue
-                
-            board = game.board()
-            for move in game.mainline_moves():
-                board.push(move)
-                features = get_halfkp_features(board)
-                yield torch.tensor(features, dtype=torch.long), torch.tensor([result], dtype=torch.float32)
-            
-            game_count += 1
-            if game_count % 100 == 0:
-                print(f"Streamed {game_count} games.")
-        
-        pgn.close()
+            per_worker = int(np.ceil(len(self.chunk_files) / float(worker_info.num_workers)))
+            worker_id = worker_info.id
+            iter_start = worker_id * per_worker
+            iter_end = min(iter_start + per_worker, len(self.chunk_files))
+            my_chunks = self.chunk_files[iter_start:iter_end]
+        else:
+            my_chunks = self.chunk_files
 
-def get_halfkp_features(board: chess.Board):
+        # Shuffle chunks
+        if self.shuffle:
+            random.shuffle(my_chunks)
+            
+        print(f"Worker {worker_info.id if worker_info else 'main'} loading {len(my_chunks)} chunks...")
+        
+        for chunk_file in my_chunks:
+            chunk_path = os.path.join(self.data_dir, chunk_file)
+            try:
+                # Load the optimized Flat + Offset dictionary
+                data = torch.load(chunk_path)
+                
+                indices = data['indices']
+                offsets = data['offsets']
+                values = data['values']
+                
+                num_samples = len(values)
+
+                # Since we can't shuffle globally, we must shuffle the buffer, this prevents overfitting from batches
+                sample_order = torch.randperm(num_samples) if self.shuffle else torch.arange(num_samples)
+                
+                # Loop through the chunk and reconstruct individual samples
+                for i in sample_order:
+                    start = offsets[i]
+                    end = offsets[i+1]
+                    
+                    # Slice the 1D array to get the features for this specific board
+                    # .long() is usually required for Embedding layers
+                    sample_indices = indices[start:end].long() 
+                    
+                    # Get label
+                    label = values[i:i+1] 
+                    
+                    yield sample_indices, label
+                    
+            except Exception as e:
+                print(f"Error loading chunk {chunk_file}: {e}")
+                continue
+
+def get_halfkp_features(board: chess.Board, perspective=None):
     """
     Generate HalfKP features for the given board.
-    
-    HalfKP architecture usually views the board from the perspective of the side to move.
-    It computes features for the friendly king and all other pieces.
-    
-    For this MVP, we will simplify:
-    We always view from White's perspective and Black's perspective separately?
-    Or just standard NNUE:
-    Two accumulators: one for White, one for Black.
-    
-    Let's return a list of active feature indices.
-    Index = KingSq * 640 + PieceSq * 10 + PieceType
-    (KingSq: 0-63, PieceSq: 0-63, PieceType: 0-9 (P, N, B, R, Q for both colors))
-    
-    Total features: 64 * 640 = 40960.
-    
-    We need to return indices for both 'White King' perspective and 'Black King' perspective?
-    Standard NNUE inputs are usually (White features, Black features).
-    
-    Let's stick to a single perspective for the 'active' side if we want a simple MLP,
-    but for NNUE we usually want both.
-    
-    Let's implement:
-    Output: indices for the side to move.
-    If it's black to move, we flip the board?
-    
-    Let's try a simpler approach for the MVP:
-    Always encode from White's perspective and Black's perspective, concatenate them?
-    
-    Let's use the standard:
-    Feature index = Orient(KingSq) * 640 + Orient(PieceSq) * 10 + PieceType
-    
-    PieceType mapping:
-    WP: 0, WN: 1, WB: 2, WR: 3, WQ: 4
-    BP: 5, BN: 6, BB: 7, BR: 8, BQ: 9
-    (King is implicit in the block)
+    If perspective is None, uses board.turn.
     """
-    
     active_indices = []
     
-    # We need to compute features for the side to move.
-    # But wait, NNUE evaluates static position, usually from both perspectives.
-    # Let's just return the indices for the side to move's king.
-    
-    # Actually, let's do a simpler "Dense" encoding if HalfKP is too complex to get right quickly without a reference.
-    # But user asked for NNUE.
-    # Okay, let's do:
-    # Input is a sparse vector of size 41024.
-    # We return a list of active indices.
-    
-    turn = board.turn
-    
-    # Perspective: Side to move
+    turn = board.turn if perspective is None else perspective
     us = turn
-    them = not turn
     
     k_sq = board.king(us)
     if k_sq is None:
@@ -143,3 +105,82 @@ def get_halfkp_features(board: chess.Board):
         active_indices.append(feature_idx)
         
     return active_indices
+
+def get_feature_deltas(board: chess.Board, move: chess.Move):
+    """
+    Returns (added, removed) indices for both perspectives.
+    Returns None if full recompute is needed (e.g. King move).
+    
+    Returns: (added_white, removed_white, added_black, removed_black)
+    """
+    # Check for King move
+    piece = board.piece_at(move.from_square)
+    if piece.piece_type == chess.KING:
+        return None # Full recompute needed for the side moving the king
+        # Actually, if White King moves, White features need recompute.
+        # Black features (opponent King) only need incremental update for the moving piece.
+        # But for simplicity, let's return None to force full recompute of everything or handle separately.
+        # Let's return None for simplicity.
+        
+    # Check for Castling (King move involved)
+    if board.is_castling(move):
+        return None
+
+    added_w, removed_w = [], []
+    added_b, removed_b = [], []
+    
+    # Helper to get feature index
+    def get_idx(sq, p, perspective):
+        us = perspective
+        k_sq = board.king(us)
+        if k_sq is None: return -1
+        
+        def orient(s, c): return s if c == chess.WHITE else s ^ 56
+        
+        k_sq_orient = orient(k_sq, us)
+        p_sq_orient = orient(sq, us)
+        
+        if p.color == us:
+            pt_idx = p.piece_type - 1
+        else:
+            pt_idx = p.piece_type - 1 + 5
+            
+        return k_sq_orient * 640 + p_sq_orient * 10 + pt_idx
+
+    # 1. Remove moving piece from old square
+    idx_w = get_idx(move.from_square, piece, chess.WHITE)
+    idx_b = get_idx(move.from_square, piece, chess.BLACK)
+    if idx_w != -1: removed_w.append(idx_w)
+    if idx_b != -1: removed_b.append(idx_b)
+    
+    # 2. Add moving piece to new square
+    # Note: If promotion, piece type changes
+    new_piece = piece
+    if move.promotion:
+        new_piece = chess.Piece(move.promotion, piece.color)
+        
+    idx_w = get_idx(move.to_square, new_piece, chess.WHITE)
+    idx_b = get_idx(move.to_square, new_piece, chess.BLACK)
+    if idx_w != -1: added_w.append(idx_w)
+    if idx_b != -1: added_b.append(idx_b)
+    
+    # 3. Handle Capture
+    if board.is_capture(move):
+        # If en passant, captured piece is at different square
+        if board.is_en_passant(move):
+            ep_sq = move.to_square ^ 8 # rank 5->4 or 4->5
+            captured_piece = board.piece_at(ep_sq)
+            cap_sq = ep_sq
+        else:
+            captured_piece = board.piece_at(move.to_square)
+            cap_sq = move.to_square
+            
+        if captured_piece:
+            # If captured piece is King (should not happen in legal chess), we are in trouble.
+            # But we assume legal moves.
+            idx_w = get_idx(cap_sq, captured_piece, chess.WHITE)
+            idx_b = get_idx(cap_sq, captured_piece, chess.BLACK)
+            if idx_w != -1: removed_w.append(idx_w)
+            if idx_b != -1: removed_b.append(idx_b)
+            
+    return (added_w, removed_w, added_b, removed_b)

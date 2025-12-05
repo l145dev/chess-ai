@@ -45,7 +45,10 @@ class NNUE(nn.Module):
         # offsets: 1D tensor of starting indices for each sample
         
         x = self.feature_transformer(indices, offsets)
-        x = self.activation(x)
+        return self.forward_network(x)
+
+    def forward_network(self, accumulator):
+        x = self.activation(accumulator)
         
         x = self.l1(x)
         x = self.activation(x)
@@ -55,3 +58,33 @@ class NNUE(nn.Module):
         
         x = self.output(x)
         return x
+
+    def get_accumulator(self, indices):
+        # Returns the accumulator for a single sample (or batch if indices is appropriate)
+        # For single sample, indices is 1D tensor.
+        # EmbeddingBag expects 1D indices and 1D offsets.
+        if indices.dim() == 1:
+            offsets = torch.tensor([0], device=indices.device)
+            return self.feature_transformer(indices, offsets)
+        else:
+            # Assume batch
+            pass
+
+    def update_accumulator(self, accumulator, added_indices, removed_indices):
+        # accumulator: (batch, hidden_dim) or (hidden_dim)
+        # added_indices: 1D tensor of indices to add
+        # removed_indices: 1D tensor of indices to remove
+        
+        # We need to handle batching if we want to evaluate multiple moves from same root.
+        # But for now let's assume single accumulator and we update it.
+        
+        # Weights: (num_features, hidden_dim)
+        weights = self.feature_transformer.weight
+        
+        if added_indices.numel() > 0:
+            accumulator = accumulator + weights[added_indices].sum(dim=0)
+            
+        if removed_indices.numel() > 0:
+            accumulator = accumulator - weights[removed_indices].sum(dim=0)
+            
+        return accumulator
