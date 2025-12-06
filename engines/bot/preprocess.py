@@ -13,6 +13,8 @@ PGN_PATH = "data/lichess_db.pgn"
 OUTPUT_DIR = "data/processed_chunks"
 CHUNK_SIZE = 1000000 # estimated 1.5gb RAM per chunks
 
+# Expecting 135 chunks w/ Lichess DB 2020 July (Filtered by >2100 Elo, >180s and >20 moves)
+
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 def save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk_id):
