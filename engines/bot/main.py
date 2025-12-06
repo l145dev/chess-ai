@@ -75,8 +75,68 @@ def evaluate(acc_white, acc_black, turn):
 
     return score # Returns score from perspective of side to move
 
+def evaluate_mopup(board, score):
+    # Only mop-up if we have a winning advantage (score > 1.0 roughly, tuned to 0.8 here)
+    # The NNUE output for winning positions is often around 0.9-1.0 if using sigmoid/clipped relu.
+    if score < 0.8:
+        return score
+        
+    # Mop-up evaluation to force checkmate
+    # Encourage pushing enemy king to edges/corners
+    # Encourage bringing our king closer
+    
+    us = board.turn
+    them = not us
+    
+    king_us_sq = board.king(us)
+    king_them_sq = board.king(them)
+    
+    if king_us_sq is None or king_them_sq is None:
+        return score
+        
+    # Center Manhattan Distance of enemy king
+    # Center is 3.5, 3.5. 
+    # File: 0..7 => dist to 3.5 is abs(file - 3.5)
+    # Rank: 0..7 => dist to 3.5 is abs(rank - 3.5)
+    
+    file_them = chess.square_file(king_them_sq)
+    rank_them = chess.square_rank(king_them_sq)
+    
+    # 0.5, 1.5, 2.5, 3.5
+    cmd = abs(file_them - 3.5) + abs(rank_them - 3.5) 
+    # Range: 1.0 (center) to 7.0 (corner)
+    
+    # Distance between kings (Manhattan is fine approx or Chebyshev)
+    # Using Manhattan for simplicity
+    file_us = chess.square_file(king_us_sq)
+    rank_us = chess.square_rank(king_us_sq)
+    
+    dist_kings = abs(file_us - file_them) + abs(rank_us - rank_them)
+    
+    # Formula: 4.7 * cmd + 1.6 * (14 - dist_kings)
+    # This is a classic mopup heuristic
+    mopup_score = 4.7 * cmd + 1.6 * (14 - dist_kings)
+    
+    # Pawn Promotion Incentive
+    # Encourages pushing pawns to the 8th rank
+    pawn_score = 0
+    for sq in board.pieces(chess.PAWN, us):
+        rank = chess.square_rank(sq) if us == chess.WHITE else (7 - chess.square_rank(sq))
+        pawn_score += rank * 0.02
+
+    # Scale it down so it doesn't override main evaluation too much, 
+    # but acts as a decisive tiebreaker.
+    # Increased weight because 0.001 was too small to break NNUE plateaus.
+    
+    return score + mopup_score * 0.05 + pawn_score
+
 # Search Logic
 def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
+    # Check Extension (Horizon)
+    # If we are at depth 0 (or less) and in check, extend by 1 ply to try to find a mate/escape
+    if depth <= 0 and board.is_check():
+        depth = 1
+
     # Draw detection, avoids infinite repetition
     if board.is_repetition(2) or board.is_fifty_moves() or board.is_insufficient_material():
         return 0.0
@@ -90,7 +150,8 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
         if board.is_stalemate():
             return 0.0
             
-        return evaluate(acc_w, acc_b, board.turn)
+        score = evaluate(acc_w, acc_b, board.turn)
+        return evaluate_mopup(board, score)
 
     legal_moves = list(board.legal_moves)
     # Move ordering: captures first
@@ -119,7 +180,7 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
 
 # Main Function
 
-def get_move(board: chess.Board, depth=3) -> chess.Move:
+def get_move(board: chess.Board, depth=4) -> chess.Move:
     # Fallback if model failed to load
     if model is None:
         legal_moves = list(board.legal_moves)
