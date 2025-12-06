@@ -130,8 +130,33 @@ def evaluate_mopup(board, score):
     
     return score + mopup_score * 0.05 + pawn_score
 
+# Transposition Table
+tt = {}
+TT_EXACT = 0
+TT_ALPHA = 1
+TT_BETA = 2
+
 # Search Logic
 def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
+    # TT Probe
+    key = board.fen()
+    
+    # Store PV move for ordering if possible, but for simple alpha-beta we just look up
+    tt_move = None
+    
+    if key in tt:
+        entry_depth, entry_score, entry_flag, entry_move = tt[key]
+        
+        if entry_depth >= depth:
+            if entry_flag == TT_EXACT:
+                return entry_score
+            elif entry_flag == TT_ALPHA and entry_score <= alpha:
+                return entry_score
+            elif entry_flag == TT_BETA and entry_score >= beta:
+                return entry_score
+        
+        tt_move = entry_move
+    
     # Check Extension (Horizon)
     # If we are at depth 0 (or less) and in check, extend by 1 ply to try to find a mate/escape
     if depth <= 0 and board.is_check():
@@ -154,10 +179,22 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
         return evaluate_mopup(board, score)
 
     legal_moves = list(board.legal_moves)
-    # Move ordering: captures first
-    legal_moves.sort(key=lambda m: board.is_capture(m), reverse=True)
+    if not legal_moves:
+        return 0.0
+        
+    # Move ordering: TT move first, then captures
+    def move_order_score(m):
+        if m == tt_move:
+            return 10000 
+        return 10 if board.is_capture(m) else 0
+        
+    legal_moves.sort(key=move_order_score, reverse=True)
 
     best_score = -float('inf')
+    best_move = None
+    original_alpha = alpha
+    
+    tt_flag = TT_ALPHA
 
     for move in legal_moves:
         # 1. Update Neural Network State
@@ -171,11 +208,19 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
         # 3. Pruning
         if score > best_score:
             best_score = score
+            best_move = move
+            
         if score > alpha:
             alpha = score
+            tt_flag = TT_EXACT
+            
         if alpha >= beta:
+            tt_flag = TT_BETA
             break
-
+            
+    # TT Store
+    tt[key] = (depth, best_score, tt_flag, best_move)
+    
     return best_score
 
 # Main Function
@@ -190,7 +235,10 @@ def get_move(board: chess.Board, depth=4) -> chess.Move:
     if not legal_moves:
         return None
 
-    # Initial Root Accumulator Calculation
+    # Helper to clear TT between moves if memory is an issue (optional)
+    # tt.clear() 
+
+    # Initial Root Accumulator
     f_w = get_halfkp_features(board, perspective=chess.WHITE)
     f_b = get_halfkp_features(board, perspective=chess.BLACK)
     
@@ -198,29 +246,42 @@ def get_move(board: chess.Board, depth=4) -> chess.Move:
         root_acc_w = model.get_accumulator(torch.tensor(f_w, dtype=torch.long, device=device))
         root_acc_b = model.get_accumulator(torch.tensor(f_b, dtype=torch.long, device=device))
 
-    # Root Search
-    best_move = None
-    alpha = -float('inf')
-    beta = float('inf')
+    # Iterative Deepening
+    best_move_global = legal_moves[0]
     
-    legal_moves.sort(key=lambda m: board.is_capture(m), reverse=True)
+    # Loop from depth 1 to target depth
+    for current_depth in range(1, depth + 1):
+        best_move_iter = None
+        best_score_iter = -float('inf')
+        alpha = -float('inf')
+        beta = float('inf')
+        
+        # Sort moves for root: Use TT move or previous best move
+        def root_move_order(m):
+            # Prioritize global best move from previous iteration
+            if m == best_move_global:
+                return 10000
+            return 10 if board.is_capture(m) else 0
+        
+        legal_moves.sort(key=root_move_order, reverse=True)
+        
+        print(f"Info: Searching Depth {current_depth}...")
+        
+        for move in legal_moves:
+            new_acc_w, new_acc_b = get_next_accumulators(board, move, root_acc_w, root_acc_b)
 
-    print(f"Starting search at depth {depth}...")
+            board.push(move)
+            # Note: We pass -beta, -alpha because we flipped the perspective
+            score = -alpha_beta(board, depth - 1, -beta, -alpha, new_acc_w, new_acc_b)
+            board.pop()
 
-    for move in legal_moves:
-        new_acc_w, new_acc_b = get_next_accumulators(board, move, root_acc_w, root_acc_b)
+            if score > alpha:
+                alpha = score
+                best_move_iter = move
+                best_score_iter = score
+                print(f"Depth {current_depth} -> Best: {move} -> Score: {score:.4f}")
+        
+        if best_move_iter:
+            best_move_global = best_move_iter
 
-        board.push(move)
-        # Note: We pass -beta, -alpha because we flipped the perspective
-        score = -alpha_beta(board, depth - 1, -beta, -alpha, new_acc_w, new_acc_b)
-        board.pop()
-
-        if score > alpha:
-            alpha = score
-            best_move = move
-            print(f"New best move: {move} Score: {score:.4f}")
-
-    if best_move is None:
-        best_move = legal_moves[0]
-
-    return best_move
+    return best_move_global
