@@ -1,12 +1,7 @@
 import torch
 import torch.nn as nn
 
-class ClippedReLU(nn.Module):
-    def __init__(self):
-        super().__init__()
-        
-    def forward(self, x):
-        return torch.clamp(x, 0.0, 1.0)
+
 
 class NNUE(nn.Module):
     def __init__(self, feature_count=40960, hidden_dim=256):
@@ -18,11 +13,9 @@ class NNUE(nn.Module):
         
         # Network
         # Input to l1 is now hidden_dim * 2 because we concat [us, them]
-        self.l1 = nn.Linear(hidden_dim * 2, 32)
-        self.l2 = nn.Linear(32, 32)
-        self.output = nn.Linear(32, 1)
-        
-        self.activation = ClippedReLU()
+        # Architecture: 512 -> 128 -> 1
+        self.l1 = nn.Linear(hidden_dim * 2, 128)
+        self.output = nn.Linear(128, 1)
         
     def forward(self, active_features):
         # active_features is a list of indices, or a padded tensor of indices.
@@ -54,13 +47,11 @@ class NNUE(nn.Module):
         # Concatenate [us, them]
         x = torch.cat([acc_us, acc_them], dim=1)
         
-        x = self.activation(x)
+        # Standard ReLU
+        x = torch.relu(x)
         
         x = self.l1(x)
-        x = self.activation(x)
-        
-        x = self.l2(x)
-        x = self.activation(x)
+        x = torch.relu(x)
         
         x = self.output(x)
         return x

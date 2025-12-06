@@ -12,9 +12,14 @@ model_path = os.path.join(os.path.dirname(__file__), "model", "mlp_model.pth")
 # Load Model globally once
 model = NNUE().to(device)
 if os.path.exists(model_path):
-    model.load_state_dict(torch.load(model_path, map_location=device))
-    model.eval()
-    print(f"Loaded model from {model_path}")
+    try:
+        model.load_state_dict(torch.load(model_path, map_location=device))
+        model.eval()
+        print(f"Loaded model from {model_path}")
+    except RuntimeError as e:
+        print(f"Failed to load model from {model_path} due to architecture mismatch: {e}")
+        print("Operating in Random Mode until retrained.")
+        model = None
 else:
     print(f"Model not found at {model_path}, operating in Random Mode.")
     model = None

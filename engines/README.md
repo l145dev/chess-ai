@@ -23,16 +23,23 @@ The model uses a standard NNUE architecture with **HalfKP** features:
 
 3.  **Network Layers**:
     - **Input**: Concatenation of the two 256-dim accumulators (512 inputs).
-    - **Hidden Layers**: 512 -> 32 -> 32.
+    - **Hidden Layers**: 512 -> 128 -> 1.
     - **Output**: 1 neuron (Evaluation score).
-    - **Activation**: `ClippedReLU` (clamped between 0 and 1).
+    - **Activation**: `ReLU` (Standard Rectified Linear Unit).
 
 ### Features
 
 - **NNUE Architecture**: Efficiently Updatable Neural Network for fast evaluation.
 - **Dual Accumulators**: Maintains and updates feature accumulators for both White and Black perspectives incrementally.
 - **Incremental Updates**: Calculates feature deltas (added/removed pieces) to update the accumulator instead of recomputing from scratch.
-- **Alpha-Beta Search**: Implements a depth-limited search (currently depth 3) with alpha-beta pruning.
+- **Search Optimizations**:
+  - **Iterative Deepening**: Searches incrementally (Depth 1, 2... N) to optimize move ordering.
+  - **Transposition Table**: Caches evaluation results to prevent re-searching identical positions.
+  - **Check Extensions**: Extends search depth at the horizon if the king is in check.
+- **Endgame Logic**:
+  - **Mop-up Evaluation**: Incentivizes driving the enemy king to the edge and closing distance in winning positions.
+  - **Pawn Incentives**: Bonuses for advancing pawns towards promotion in winning endgames.
+- **Alpha-Beta Search**: Implements a depth-limited search (default depth 4) with alpha-beta pruning.
 - **Preprocessed Data**: Uses a compressed sparse row format for efficient data loading during training.
 
 ### Files
