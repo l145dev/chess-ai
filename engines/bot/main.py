@@ -6,7 +6,8 @@ from engines.bot.model import NNUE
 from engines.bot.dataset import get_halfkp_features, get_feature_deltas
 
 # Setup & Config
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# Force CPU for inference to avoid CUDA kernel launch overhead during sequential search
+device = torch.device("cpu") 
 model_path = os.path.join(os.path.dirname(__file__), "model", "mlp_model.pth")
 
 # Load Model globally once
@@ -81,9 +82,9 @@ def evaluate(acc_white, acc_black, turn):
     return score # Returns score from perspective of side to move
 
 def evaluate_mopup(board, score):
-    # Only mop-up if we have a winning advantage (score > 1.0 roughly, tuned to 0.8 here)
-    # The NNUE output for winning positions is often around 0.9-1.0 if using sigmoid/clipped relu.
-    if score < 0.8:
+    # Only mop-up if we have a winning advantage
+    # Relaxed threshold to 0.5 to encourage mating nets even if NNUE is slightly less confident
+    if score < 0.5:
         return score
         
     # Mop-up evaluation to force checkmate
@@ -111,8 +112,7 @@ def evaluate_mopup(board, score):
     cmd = abs(file_them - 3.5) + abs(rank_them - 3.5) 
     # Range: 1.0 (center) to 7.0 (corner)
     
-    # Distance between kings (Manhattan is fine approx or Chebyshev)
-    # Using Manhattan for simplicity
+    # Distance between kings
     file_us = chess.square_file(king_us_sq)
     rank_us = chess.square_rank(king_us_sq)
     
@@ -127,11 +127,11 @@ def evaluate_mopup(board, score):
     pawn_score = 0
     for sq in board.pieces(chess.PAWN, us):
         rank = chess.square_rank(sq) if us == chess.WHITE else (7 - chess.square_rank(sq))
-        pawn_score += rank * 0.02
+        # Bonus for advancing pawns
+        pawn_score += rank * 0.05
 
     # Scale it down so it doesn't override main evaluation too much, 
     # but acts as a decisive tiebreaker.
-    # Increased weight because 0.001 was too small to break NNUE plateaus.
     
     return score + mopup_score * 0.05 + pawn_score
 
@@ -140,6 +140,45 @@ tt = {}
 TT_EXACT = 0
 TT_ALPHA = 1
 TT_BETA = 2
+
+def quiescence(board, alpha, beta, acc_w, acc_b):
+    # 1. Standing Pat (Static Evaluation)
+    raw_score = evaluate(acc_w, acc_b, board.turn)
+    stand_pat = evaluate_mopup(board, raw_score)
+    
+    if stand_pat >= beta:
+        return beta
+        
+    if stand_pat > alpha:
+        alpha = stand_pat
+        
+    # 2. Explore Captures
+    legal_moves = list(board.legal_moves)
+    
+    # Filter for captures only (and maybe promotions)
+    # Good to order by MVV-LVA, but simple capture flag sort is a start
+    capture_moves = [m for m in legal_moves if board.is_capture(m) or m.promotion]
+    
+    if not capture_moves:
+        return stand_pat
+        
+    # Sort captures (MVV-LVA logic is better, but capture vs non-capture is already handled)
+    # Let's sort by captured piece value ideally, but for now just simple
+    
+    for move in capture_moves:
+        new_acc_w, new_acc_b = get_next_accumulators(board, move, acc_w, acc_b)
+        
+        board.push(move)
+        score = -quiescence(board, -beta, -alpha, new_acc_w, new_acc_b)
+        board.pop()
+        
+        if score >= beta:
+            return beta
+            
+        if score > alpha:
+            alpha = score
+            
+    return alpha
 
 # Search Logic
 def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
@@ -172,7 +211,10 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
         return 0.0
 
     # Base case
-    if depth == 0 or board.is_game_over():
+    if depth == 0:
+        return quiescence(board, alpha, beta, acc_w, acc_b)
+        
+    if board.is_game_over():
         # If is_game_over is True here, it's likely Checkmate or Stalemate
         if board.is_checkmate():
             # Large negative score because the side to move has been mated
@@ -180,9 +222,6 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
         if board.is_stalemate():
             return 0.0
             
-        score = evaluate(acc_w, acc_b, board.turn)
-        return evaluate_mopup(board, score)
-
     legal_moves = list(board.legal_moves)
     if not legal_moves:
         return 0.0
