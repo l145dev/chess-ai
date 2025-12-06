@@ -9,7 +9,7 @@ sys.path.append(os.getcwd())
 from engines.bot.dataset import get_halfkp_features
 
 # Settings
-PGN_PATH = "data/lichess_db.pgn"
+PGN_DIR = "data/elite_data"
 OUTPUT_DIR = "data/processed_chunks"
 CHUNK_SIZE = 1000000 # estimated 1.5gb RAM per chunks
 
@@ -38,9 +38,14 @@ def save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk
     print(f"Saved chunk {chunk_id}: {len(labels)} positions.")
 
 def parse_and_save():
-    print(f"Parsing {PGN_PATH}...")
-    pgn = open(PGN_PATH)
+    print(f"Scanning {PGN_DIR} for PGN files...")
+    pgn_files = [f for f in os.listdir(PGN_DIR) if f.endswith(".pgn")]
+    pgn_files.sort() # Ensure consistent order
     
+    if not pgn_files:
+        print(f"No PGN files found in {PGN_DIR}")
+        return
+
     # Storage buffers
     indices_us = [] 
     offsets_us = [0]
@@ -48,67 +53,75 @@ def parse_and_save():
     indices_them = []
     offsets_them = [0]
     
-    labels = []        # Scores
+    # Scores
+    labels = []
     
     chunk_id = 0
     game_count = 0
     
-    while True:
-        try:
-            game = chess.pgn.read_game(pgn)
-        except Exception:
-            break
-            
-        if game is None: break
+    for pgn_file in pgn_files:
+        pgn_path = os.path.join(PGN_DIR, pgn_file)
+        print(f"Parsing {pgn_path}...")
+        pgn = open(pgn_path)
         
-        # Get result
-        result_header = game.headers.get("Result", "*")
-        if result_header == "1-0": game_result = 1.0
-        elif result_header == "0-1": game_result = 0.0
-        elif result_header == "1/2-1/2": game_result = 0.5
-        else: continue # Skip unfinished games
-            
-        board = game.board()
-        for move in game.mainline_moves():
-            board.push(move)
-            
-            # Get Features for US (side to move)
-            feats_us = get_halfkp_features(board, perspective=board.turn)
-            indices_us.extend(feats_us)
-            offsets_us.append(len(indices_us))
-            
-            # Get Features for THEM (opponent)
-            feats_them = get_halfkp_features(board, perspective=not board.turn)
-            indices_them.extend(feats_them)
-            offsets_them.append(len(indices_them))
-            
-            # Add Label
-            if board.turn == chess.WHITE:
-                labels.append(game_result)
-            else:
-                labels.append(1.0 - game_result)
-            
-            # Check Buffer
-            if len(labels) >= CHUNK_SIZE:
-                save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk_id)
+        while True:
+            try:
+                game = chess.pgn.read_game(pgn)
+            except Exception:
+                break
                 
-                # Reset buffers
-                indices_us = []
-                offsets_us = [0]
-                indices_them = []
-                offsets_them = [0]
-                labels = []
-                chunk_id += 1
+            if game is None: break
+            
+            # Get result
+            result_header = game.headers.get("Result", "*")
+            if result_header == "1-0": game_result = 1.0
+            elif result_header == "0-1": game_result = 0.0
+            elif result_header == "1/2-1/2": game_result = 0.5
+            else: continue # Skip unfinished games
                 
-        game_count += 1
-        if game_count % 100 == 0:
-            print(f"Processed {game_count} games...", end='\r')
+            board = game.board()
+            for move in game.mainline_moves():
+                board.push(move)
+                
+                # Get Features for US (side to move)
+                feats_us = get_halfkp_features(board, perspective=board.turn)
+                indices_us.extend(feats_us)
+                offsets_us.append(len(indices_us))
+                
+                # Get Features for THEM (opponent)
+                feats_them = get_halfkp_features(board, perspective=not board.turn)
+                indices_them.extend(feats_them)
+                offsets_them.append(len(indices_them))
+                
+                # Add Label
+                if board.turn == chess.WHITE:
+                    labels.append(game_result)
+                else:
+                    labels.append(1.0 - game_result)
+                
+                # Check Buffer
+                if len(labels) >= CHUNK_SIZE:
+                    save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk_id)
+                    
+                    # Reset buffers
+                    indices_us = []
+                    offsets_us = [0]
+                    indices_them = []
+                    offsets_them = [0]
+                    labels = []
+                    chunk_id += 1
+                    
+            game_count += 1
+            if game_count % 100 == 0:
+                print(f"Processed {game_count} games...", end='\r')
+        
+        pgn.close() # Close file handle after finishing the file
 
     # Save remaining data
     if len(labels) > 0:
         save_chunk(indices_us, offsets_us, indices_them, offsets_them, labels, chunk_id)
         
-    print(f"\nFinished! Processed {game_count} games.")
+    print(f"\nFinished! Processed {game_count} games from {len(pgn_files)} files.")
 
 if __name__ == "__main__":
     parse_and_save()

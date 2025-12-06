@@ -1,8 +1,6 @@
 import torch
 import torch.nn as nn
 
-
-
 class NNUE(nn.Module):
     def __init__(self, feature_count=40960, hidden_dim=256):
         super().__init__()
