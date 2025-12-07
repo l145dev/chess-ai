@@ -5,6 +5,7 @@ lichess_bot_auto_logs/*
 .vscode/*
 .vs/*
 *.pgn
+!engines/bot/game_logs/*.pgn
 *.pt
 *.pth
 *.log

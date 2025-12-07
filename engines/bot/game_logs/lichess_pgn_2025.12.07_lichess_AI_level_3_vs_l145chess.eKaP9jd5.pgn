@@ -1,0 +1,22 @@
+[Event "casual correspondence game"]
+[Site "https://lichess.org/eKaP9jd5"]
+[Date "2025.12.07"]
+[White "lichess AI level 3"]
+[Black "l145chess"]
+[Result "1-0"]
+[GameId "eKaP9jd5"]
+[UTCDate "2025.12.07"]
+[UTCTime "14:45:19"]
+[WhiteElo "?"]
+[BlackElo "2000"]
+[BlackTitle "BOT"]
+[Variant "Standard"]
+[TimeControl "-"]
+[ECO "C44"]
+[Opening "Ponziani Opening: Jaenisch Counterattack"]
+[Termination "Normal"]
+[Annotator "lichess.org"]
+
+1. e4 Nc6 2. c3 Nf6 3. d3 e5 4. Nf3 { C44 Ponziani Opening: Jaenisch Counterattack } Ng4 5. h3 Bc5 6. d4 Qh4 7. Nxh4 exd4 8. Qxg4 dxc3 9. Nxc3 Ke7 10. Qg5+ f6 11. Qxg7+ Ke6 12. Bc4+ d5 13. Bxd5+ Ke5 14. Qxh8 Bxf2+ 15. Kxf2 Nb4 16. Bf4+ Kd4 17. Bxc7 Nd3+ 18. Ke2 Nc1+ 19. Rhxc1 Bg4+ 20. hxg4 Re8 21. Nb5# { White wins by checkmate. } 1-0
+
+

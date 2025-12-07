@@ -1,4 +1,5 @@
 import chess
+import chess.polyglot
 import torch
 import numpy as np
 import os
@@ -47,15 +48,17 @@ def get_next_accumulators(board, move, acc_w, acc_b):
         return new_acc_w, new_acc_b
 
     # CASE B: Incremental Update (Fast)
-    added_w, removed_w, added_b, removed_b = deltas
-    
-    t_add_w = torch.tensor(added_w, dtype=torch.long, device=device)
-    t_rem_w = torch.tensor(removed_w, dtype=torch.long, device=device)
-    new_acc_w = model.update_accumulator(acc_w.clone(), t_add_w, t_rem_w)
+    # No gradient for perf boost
+    with torch.no_grad():
+        added_w, removed_w, added_b, removed_b = deltas
+        
+        t_add_w = torch.tensor(added_w, dtype=torch.long, device=device)
+        t_rem_w = torch.tensor(removed_w, dtype=torch.long, device=device)
+        new_acc_w = model.update_accumulator(acc_w.clone(), t_add_w, t_rem_w)
 
-    t_add_b = torch.tensor(added_b, dtype=torch.long, device=device)
-    t_rem_b = torch.tensor(removed_b, dtype=torch.long, device=device)
-    new_acc_b = model.update_accumulator(acc_b.clone(), t_add_b, t_rem_b)
+        t_add_b = torch.tensor(added_b, dtype=torch.long, device=device)
+        t_rem_b = torch.tensor(removed_b, dtype=torch.long, device=device)
+        new_acc_b = model.update_accumulator(acc_b.clone(), t_add_b, t_rem_b)
     
     return new_acc_w, new_acc_b
 
@@ -81,11 +84,32 @@ def evaluate(acc_white, acc_black, turn):
 
     return score # Returns score from perspective of side to move
 
+def mvv_lva_score(board, move):
+    # Most Valuable Victim - Least Valuable Aggressor
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 0
+    }
+    
+    victim = board.piece_at(move.to_square)
+    victim_val = piece_values.get(victim.piece_type, 0) if victim else 0
+    
+    aggressor = board.piece_at(move.from_square)
+    aggressor_val = piece_values.get(aggressor.piece_type, 0) if aggressor else 0
+    
+    return victim_val - aggressor_val / 100.0
+
 def evaluate_mopup(board, score):
     # Only mop-up if we have a winning advantage
     # Relaxed threshold to 0.5 to encourage mating nets even if NNUE is slightly less confident
     if score < 0.5:
         return score
+        
+    winning_factor = (score - 0.5) * 2 # 0.0 to 1.0 (scales the bonus)
         
     # Mop-up evaluation to force checkmate
     # Encourage pushing enemy king to edges/corners
@@ -128,12 +152,12 @@ def evaluate_mopup(board, score):
     for sq in board.pieces(chess.PAWN, us):
         rank = chess.square_rank(sq) if us == chess.WHITE else (7 - chess.square_rank(sq))
         # Bonus for advancing pawns
-        pawn_score += rank * 0.05
+        pawn_score += rank * 0.01
 
     # Scale it down so it doesn't override main evaluation too much, 
     # but acts as a decisive tiebreaker.
     
-    return score + mopup_score * 0.05 + pawn_score
+    return score + (mopup_score * 0.05 + pawn_score) * winning_factor
 
 # Transposition Table
 tt = {}
@@ -165,6 +189,9 @@ def quiescence(board, alpha, beta, acc_w, acc_b):
     # Sort captures (MVV-LVA logic is better, but capture vs non-capture is already handled)
     # Let's sort by captured piece value ideally, but for now just simple
     
+    # Sort captures by MVV-LVA
+    capture_moves.sort(key=lambda m: mvv_lva_score(board, m), reverse=True)
+    
     for move in capture_moves:
         new_acc_w, new_acc_b = get_next_accumulators(board, move, acc_w, acc_b)
         
@@ -183,7 +210,7 @@ def quiescence(board, alpha, beta, acc_w, acc_b):
 # Search Logic
 def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
     # TT Probe
-    key = board.fen()
+    key = chess.polyglot.zobrist_hash(board)
     
     # Store PV move for ordering if possible, but for simple alpha-beta we just look up
     tt_move = None
@@ -230,7 +257,9 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
     def move_order_score(m):
         if m == tt_move:
             return 10000 
-        return 10 if board.is_capture(m) else 0
+        if board.is_capture(m):
+             return 10 + mvv_lva_score(board, m)
+        return 0
         
     legal_moves.sort(key=move_order_score, reverse=True)
 
@@ -269,7 +298,7 @@ def alpha_beta(board, depth, alpha, beta, acc_w, acc_b):
 
 # Main Function
 
-def get_move(board: chess.Board, depth=4) -> chess.Move:
+def get_move(board: chess.Board, depth=5) -> chess.Move:
     # Fallback if model failed to load
     if model is None:
         legal_moves = list(board.legal_moves)
@@ -305,7 +334,11 @@ def get_move(board: chess.Board, depth=4) -> chess.Move:
             # Prioritize global best move from previous iteration
             if m == best_move_global:
                 return 10000
-            return 10 if board.is_capture(m) else 0
+            
+            if board.is_capture(m):
+                return 10 + mvv_lva_score(board, m)
+                
+            return 0
         
         legal_moves.sort(key=root_move_order, reverse=True)
         
@@ -316,7 +349,7 @@ def get_move(board: chess.Board, depth=4) -> chess.Move:
 
             board.push(move)
             # Note: We pass -beta, -alpha because we flipped the perspective
-            score = -alpha_beta(board, depth - 1, -beta, -alpha, new_acc_w, new_acc_b)
+            score = -alpha_beta(board, current_depth - 1, -beta, -alpha, new_acc_w, new_acc_b)
             board.pop()
 
             if score > alpha:

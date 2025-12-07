@@ -1,0 +1,22 @@
+[Event "casual correspondence game"]
+[Site "https://lichess.org/A3yP3tQw"]
+[Date "2025.12.07"]
+[White "l145chess"]
+[Black "lichess AI level 3"]
+[Result "0-1"]
+[GameId "A3yP3tQw"]
+[UTCDate "2025.12.07"]
+[UTCTime "14:03:14"]
+[WhiteElo "2000"]
+[BlackElo "?"]
+[WhiteTitle "BOT"]
+[Variant "Standard"]
+[TimeControl "-"]
+[ECO "A04"]
+[Opening "Zukertort Opening: Black Mustang Defense"]
+[Termination "Normal"]
+[Annotator "lichess.org"]
+
+1. Nf3 { [%eval 0.1] } 1... Nc6 { [%eval 0.44] } { A04 Zukertort Opening: Black Mustang Defense } 2. c3?! { (0.44 → -0.11) Inaccuracy. d4 was best. } { [%eval -0.11] } (2. d4 d5 3. c4 e6 4. e3 Nf6 5. Nc3 Be7 6. a3 O-O) 2... e5 { [%eval -0.09] } 3. Qa4 { [%eval -0.48] } 3... f5 { [%eval -0.49] } 4. Rg1?! { (-0.49 → -1.43) Inaccuracy. g3 was best. } { [%eval -1.43] } (4. g3 e4 5. Nd4 Nxd4 6. cxd4 c6 7. d5 Nf6 8. Bh3 g6) 4... e4 { [%eval -1.18] } 5. Na3?? { (-1.18 → -3.85) Blunder. Nd4 was best. } { [%eval -3.85] } (5. Nd4) 5... exf3 { [%eval -3.69] } 6. Nb5 { [%eval -4.31] } 6... fxg2 { [%eval -3.72] } 7. Bxg2 { [%eval -3.89] } 7... a6 { [%eval -3.73] } 8. Kd1 { [%eval -4.56] } 8... Nf6 { [%eval -4.24] } 9. b3 { [%eval -4.84] } 9... d6 { [%eval -4.04] } 10. Qf4?! { (-4.04 → -6.13) Inaccuracy. Nd4 was best. } { [%eval -6.13] } (10. Nd4 d5 11. Nxc6 bxc6 12. c4 Bd7 13. Bb2 Rg8 14. Qa5 Qb8 15. Qc3 Qb4) 10... axb5 { [%eval -6.14] } 11. Bxc6+ { [%eval -6.07] } 11... bxc6 { [%eval -6.08] } 12. h3 { [%eval -6.79] } 12... Nd5 { [%eval -6.53] } 13. Qe5+?! { (-6.53 → -9.47) Inaccuracy. Qf3 was best. } { [%eval -9.47] } (13. Qf3 Qf6 14. Bb2 Ne7 15. Kc2 Qf7 16. d3 Rg8 17. Rae1 Be6 18. c4 bxc4) 13... dxe5 { [%eval -9.79] } 14. Rxg7 { [%eval -10.9] } 14... Bxg7 { [%eval -10.7] } 15. c4 { [%eval -10.88] } 15... Nb4 { [%eval -10.83] } 16. cxb5 { [%eval -11.02] } 16... O-O { [%eval -10.43] } 17. h4?! { (-10.43 → Mate in 8) Checkmate is now unavoidable. Bb2 was best. } { [%eval #-8] } (17. Bb2 Rf7 18. Rc1 e4 19. Bc3 Bxc3 20. Rxc3 Rxa2 21. Rg3+ Rg7 22. d3 Rxg3) 17... c5?! { (Mate in 8 → -11.15) Lost forced checkmate sequence. Qxh4 was best. } { [%eval -11.15] } (17... Qxh4 18. d4 Qh1+ 19. Kd2 Bh6+ 20. e3 Qf1 21. f4 Qf2+ 22. Kd1 Qc2+ 23. Ke1) 18. Bb2 { [%eval -10.84] } 18... Nxa2 { [%eval -9.93] } 19. Bxe5? { (-9.93 → Mate in 7) Checkmate is now unavoidable. d3 was best. } { [%eval #-7] } (19. d3 Rf7 20. h5 Be6 21. b4 Bb3+ 22. Ke1 cxb4 23. Kf1 Qh4 24. Kg2 e4) 19... Bxe5 { [%eval -15.81] } 20. b6?! { (-15.81 → Mate in 5) Checkmate is now unavoidable. Rc1 was best. } { [%eval #-5] } (20. Rc1 Nxc1) 20... Qxh4 { [%eval #-4] } 21. d3 { [%eval #-4] } 21... Qh1+ { [%eval #-4] } 22. Kd2 { [%eval #-4] } 22... Bc3+ { [%eval #-3] } 23. Kc2 { [%eval #-3] } 23... Bxa1 { [%eval #-2] } 24. bxc7 { [%eval #-1] } 24... Qc1# { Black wins by checkmate. } 0-1
+
+
