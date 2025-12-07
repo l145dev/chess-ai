@@ -39,4 +39,4 @@ Navigate to this directory and run in Release mode (crucial for speed):
 dotnet run -c Release
 ```
 
-Output will be saved to `../lichess_db.pgn`.
+Output will be saved to `../elite_data/lichess_db.pgn`.

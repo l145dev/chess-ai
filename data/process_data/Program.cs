@@ -6,7 +6,7 @@ class Program
 {
     // Config
     const string InputFile = "../lichess_db_raw.pgn"; // Input from data/lichess_db_raw.pgn
-    const string OutputFile = "../lichess_db.pgn"; // Output to data/lichess_db.pgn
+    const string OutputFile = "../elite_data/lichess_db.pgn"; // Output to data/elite_data/lichess_db.pgn
     const int MinElo = 2100;      // Filter for high tier players (tweak to get your ideal file size for training)
     const int MinTimeSec = 180;   // 180s = 3 mins (No Bullet)
     const bool CheckMoveCount = true; // Make sure move count is at least 20
@@ -15,11 +15,11 @@ class Program
     {
         if (!File.Exists(InputFile))
         {
-            Console.WriteLine($"Yo, can't find {InputFile}");
+            Console.WriteLine($"Can't find {InputFile}");
             return;
         }
 
-        Console.WriteLine($"Starting C# Turbo Filter...");
+        Console.WriteLine($"Starting C# Filter...");
         Console.WriteLine($"Input: {InputFile}");
         Console.WriteLine($"Output: {OutputFile}");
         Console.WriteLine($"Criteria: AvgElo > {MinElo}, Time > {MinTimeSec}s");

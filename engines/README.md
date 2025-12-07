@@ -32,14 +32,18 @@ The model uses a standard NNUE architecture with **HalfKP** features:
 - **NNUE Architecture**: Efficiently Updatable Neural Network for fast evaluation.
 - **Dual Accumulators**: Maintains and updates feature accumulators for both White and Black perspectives incrementally.
 - **Incremental Updates**: Calculates feature deltas (added/removed pieces) to update the accumulator instead of recomputing from scratch.
-- **Search Optimizations**:
-  - **Iterative Deepening**: Searches incrementally (Depth 1, 2... N) to optimize move ordering.
-  - **Transposition Table**: Caches evaluation results to prevent re-searching identical positions.
-  - **Check Extensions**: Extends search depth at the horizon if the king is in check.
+- **Advanced Search Engine**:
+  - **Principal Variation Search (PVS)**: A NegaScout variant to optimize alpha-beta search windows.
+  - **Null Move Pruning (NMP)**: Prunes subtrees where passing the move is still too good for the opponent.
+  - **Late Move Reductions (LMR)**: Reduces search depth for quiet moves late in the move order.
+  - **MVV-LVA Move Ordering**: Prioritizes capturing valuable pieces with less valuable ones.
+  - **History & Killer Heuristics**: Guidelines to improved move ordering based on past search results.
+  - **Transposition Table**: Zobrist Hashing to cache and retrieve search results.
+  - **Check Extensions**: Extends search depth when in check.
+  - **Iterative Deepening**: Searches incrementally (Depth 1, 2... N) for better time management and ordering.
 - **Endgame Logic**:
   - **Mop-up Evaluation**: Incentivizes driving the enemy king to the edge and closing distance in winning positions.
   - **Pawn Incentives**: Bonuses for advancing pawns towards promotion in winning endgames.
-- **Alpha-Beta Search**: Implements a depth-limited search (default depth 4) with alpha-beta pruning.
 - **Preprocessed Data**: Uses a compressed sparse row format for efficient data loading during training.
 
 ### Files
@@ -51,18 +55,26 @@ The model uses a standard NNUE architecture with **HalfKP** features:
 - **`model.py`**: Defines the `NNUE` PyTorch model.
   - `NNUE`: The main model class.
   - `update_accumulator`: Efficiently updates the feature transformer state.
-- **`preprocess.py`**: Converts PGN games into efficient preprocessed chunks with dual-perspective features.
+- **`preprocess.py`**: Converts PGN games into efficient preprocessed chunks.
+  - Scans `data/elite_data` for all `.pgn` files and processes them.
 - **`train.py`**: Training script.
   - Uses `PreprocessedDataset` to train the model on the precomputed data.
   - Saves the model to `engines/bot/model/mlp_model.pth`.
-- **`main.py`**: The engine interface.
-  - Loads the model from `engines/bot/model/mlp_model.pth`.
-  - `get_move(board)`: Performs Alpha-Beta search with incremental updates to find the best move.
+- **`search.py`**: The core search engine implementation.
+  - `Searcher`: Class containing the PVS search logic, TT, and heuristics.
+- **`main.py`**: The interface entry point.
+  - Wraps `search.py` to provide a simple `get_move(board)` API.
 
 ### Usage
 
 1.  **Data Preparation**:
-    If you have a raw PGN file (`data/lichess_db_raw.pgn`), you should use the high-performance C# tool in `data/process_data` to filter it. Find more information in [data/process_data/README.md](../data/process_data/README.md).
+    Place your PGN files in `data/elite_data`. The system is designed to handle multiple large PGN files.
+
+    #### Data Processing (Optional, only works with 1 PGN file):
+
+    If you have only 1 pgn file, put it in `data/`. Rename that PGN file to `lichess_db_raw.pgn`.
+
+    If you want to filter by good games only (elo >2100 and time >180s), use the high-performance C# tool in `data/process_data` to filter it. Find more information in [data/process_data/README.md](../data/process_data/README.md).
 
     Navigate to `data/process_data` and run:
 
@@ -70,7 +82,7 @@ The model uses a standard NNUE architecture with **HalfKP** features:
     dotnet run -c Release
     ```
 
-    This creates `data/lichess_db.pgn`.
+    This creates `data/elite_data/lichess_db.pgn`.
 
 2.  **Preprocessing**:
     To preprocess the PGN data into training chunks, run:
@@ -105,12 +117,12 @@ The model uses a standard NNUE architecture with **HalfKP** features:
     ./start_bot.sh
     ```
 
-    This script sets up the environment and runs `lichess-bot.py`, which uses the `PyBot` class in `homemade.py`, which in turn calls `engines.bot.main.get_move`.
+    This script sets up the environment and runs `lichess-bot.py`.
 
 ### Requirements
 
 - Python 3.x
-- `torch` (with CUDA recommended for training)
+- `torch` (with CUDA recommended for training, CPU for inference)
 - `python-chess`
 - `numpy`
 - `tqdm`
