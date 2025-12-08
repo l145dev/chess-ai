@@ -48,7 +48,7 @@ A custom chess bot designed for Lichess, powered by a hybrid Python/C# architect
 ### 1. Data Preparation (C#)
 
 > [!NOTE]
-> This tool does not process multiple PGN files.
+> Data processing tool does not process multiple PGN files.
 
 Before training, filter your raw PGN data using the high-performance C# tool.
 
