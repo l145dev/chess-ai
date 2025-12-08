@@ -11,6 +11,7 @@ lichess_bot_auto_logs/*
 *.log
 TEMP/*
 engines/bot/model/*
+!engines/bot/model/mlp_model.pth
 data/process_data/bin/
 data/process_data/obj/
 data/process_data/.vs/
