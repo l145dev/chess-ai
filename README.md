@@ -47,6 +47,9 @@ A custom chess bot designed for Lichess, powered by a hybrid Python/C# architect
 
 ### 1. Data Preparation (C#)
 
+> [!NOTE]
+> This tool does not process multiple PGN files.
+
 Before training, filter your raw PGN data using the high-performance C# tool.
 
 1.  Place your raw PGN file at `data/lichess_db_raw.pgn`.
@@ -55,7 +58,7 @@ Before training, filter your raw PGN data using the high-performance C# tool.
     cd data/process_data
     dotnet run -c Release
     ```
-3.  This generates `data/lichess_db.pgn`.
+3.  This generates `data/elite_data/lichess_db.pgn`.
 
 ### 2. Training (Python)
 
