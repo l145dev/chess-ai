@@ -2,6 +2,9 @@
 
 This is a high-performance C# tool designed to filter massive PGN datasets (100GB+) in minutes. It strips out low-quality games (Bullet, low Elo) to prepare data for NNUE engine training.
 
+> [!NOTE]
+> This tool does not support multiple PGN files processing at once.
+
 ## Prerequisites
 
 - .NET SDK
