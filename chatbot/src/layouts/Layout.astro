@@ -1,22 +1,138 @@
+---
+import background from "../assets/abstract_black_bg.jpg";
+import rookIcon from "../assets/rook_icon.png";
+---
+
 <!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/png" href="/rook_icon.png" />
+		<link rel="icon" type="image/png" href={rookIcon.src} />
 		<meta name="generator" content={Astro.generator} />
 		<title>NNUE ChessBot</title>
 	</head>
 	<body>
-		<slot />
+		<div class="background-container">
+			<img src={background.src} alt="" fetchpriority="high" />
+		</div>
+		<header>
+			<div class="logo">
+				<img src={rookIcon.src} alt="Rook Icon" />
+			</div>
+			<div class="title">NNUE ChessBot</div>
+			<a href="https://github.com/l145dev/chess-ai" target="_blank" rel="noopener noreferrer" class="github-link">
+				<svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+					<path d="M12 1.27a11 11 0 00-3.48 21.46c.55.09.73-.28.73-.55v-1.84c-3.03.64-3.67-1.46-3.67-1.46-.55-1.29-1.28-1.65-1.28-1.65-.92-.65.1-.65.1-.65 1.1 0 1.73 1.1 1.73 1.1.92 1.65 2.57 1.2 3.21.92a2 2 0 01.64-1.47c-2.47-.27-5.04-1.19-5.04-5.5 0-1.1.46-2.1 1.2-2.84a3.76 3.76 0 010-2.93s.91-.28 3.11 1.1c1.8-.49 3.7-.49 5.5 0 2.1-1.38 3.02-1.1 3.02-1.1a3.76 3.76 0 010 2.93c.83.74 1.2 1.74 1.2 2.94 0 4.21-2.57 5.13-5.04 5.4.45.37.82.92.82 2.02v3.03c0 .27.1.64.73.55A11 11 0 0012 1.27"></path>
+				</svg>
+			</a>
+		</header>
+		<main>
+			<slot />
+		</main>
 	</body>
 </html>
 
-<style>
+<style is:global>
+	:root {
+		--font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+		--text-color: #e0e0e0;
+		--accent-color: #ffffff;
+	}
 	html,
 	body {
 		margin: 0;
+		padding: 0;
 		width: 100%;
 		height: 100%;
+		font-family: var(--font-family);
+		background-color: #000;
+		color: var(--text-color);
+		overflow: hidden;
+	}
+
+	h1, h2, h3, h4, h5, h6, p {
+		margin: 0;
+	}
+
+	.background-container {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		z-index: -1;
+	}
+	.background-container img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		opacity: 0.8; /* Adjust opacity as needed */
+	}
+
+	header {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 60px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 20px;
+		box-sizing: border-box;
+		z-index: 10;
+	}
+
+	.logo img {
+		height: 32px;
+		width: auto;
+		filter: brightness(0) invert(1);
+		opacity: 0.8;
+	}
+
+	.title {
+		font-size: 1.2rem;
+		font-weight: 600;
+		color: rgba(255, 255, 255, 0.9);
+		font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	}
+
+	.github-link {
+		color: rgba(255, 255, 255, 0.5);
+		transition: color 0.3s ease;
+		display: flex;
+		align-items: center;
+	}
+	.github-link:hover {
+		color: rgba(255, 255, 255, 1);
+	}
+
+	/* Custom Scrollbar */
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: #1a1a1a;
+		border-radius: 4px;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: #4a4a4a;
+		border-radius: 4px;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background: #6a6a6a;
+	}
+
+	main {
+		height: 100%;
+		width: 100%;
+		display: flex;
+		justify-content: center;
+		align-items: center;
 	}
 </style>
