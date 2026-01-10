@@ -38,17 +38,18 @@ const ChatLogic = () => {
   // Adjust textarea height
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value);
-
-    // field-sizing: content should handle this automatically if supported (Chrome 123+),
-    // but we can add a fallback or just rely on CSS as requested.
   };
 
   const decideMutation = useMutation({
     mutationFn: async (prompt: string) => {
+      // Find the last FEN in messages to send as context
+      const lastFenMessage = [...messages].reverse().find((m) => m.fen);
+      const currentFen = lastFenMessage?.fen;
+
       const res = await fetch("/api/decide", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, currentFen }),
       });
       return res.json();
     },
