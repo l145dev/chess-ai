@@ -68,7 +68,7 @@ import rookIcon from "../assets/rook_icon.png";
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
-		opacity: 0.8; /* Adjust opacity as needed */
+		opacity: 0.8;
 	}
 
 	header {
@@ -85,11 +85,20 @@ import rookIcon from "../assets/rook_icon.png";
 		z-index: 10;
 	}
 
+	.logo {
+		cursor: pointer;
+	}
+
 	.logo img {
 		height: 32px;
 		width: auto;
 		filter: brightness(0) invert(1);
-		opacity: 0.8;
+		opacity: 0.5;
+		transition: opacity 0.3s ease;
+	}
+
+	.logo:hover img {
+		opacity: 1;
 	}
 
 	.title {
@@ -137,3 +146,12 @@ import rookIcon from "../assets/rook_icon.png";
 		align-items: center;
 	}
 </style>
+
+<script>
+	const logo = document.querySelector('.logo');
+	if (logo) {
+		logo.addEventListener('click', () => {
+			window.dispatchEvent(new Event('reset-chat'));
+		});
+	}
+</script>

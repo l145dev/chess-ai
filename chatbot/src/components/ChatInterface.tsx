@@ -4,6 +4,8 @@ import {
   useMutation,
 } from "@tanstack/react-query";
 import React, { useEffect, useRef, useState } from "react";
+import blackQueen from "../assets/pieces-png/black-queen.png";
+import whiteKing from "../assets/pieces-png/white-king.png";
 import ChessBoard from "./ChessBoard";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,19 @@ const ChatLogic = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Handle global reset event
+  useEffect(() => {
+    const handleReset = () => {
+      setMessages([]);
+      setInputValue("");
+    };
+
+    window.addEventListener("reset-chat", handleReset);
+    return () => {
+      window.removeEventListener("reset-chat", handleReset);
+    };
+  }, []);
 
   // Adjust textarea height
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -134,19 +149,30 @@ const ChatLogic = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+    sendMessage(inputValue);
+    setInputValue("");
+  };
 
+  const sendMessage = (text: string) => {
     // Add User Message
     setMessages((prev) => [
       ...prev,
       {
         id: Date.now().toString(),
         role: "user",
-        content: inputValue,
+        content: text,
       },
     ]);
 
-    decideMutation.mutate(inputValue);
-    setInputValue("");
+    decideMutation.mutate(text);
+  };
+
+  // Helper handling direct clicks
+  const handleDirectSend = (text: string) => {
+    // Optional: setInputValue(text) visually if needed, but per logic we just send it.
+    // User request: "setInputValue and then trigger submit"
+    // We can just call sendMessage which mimics the submit logic.
+    sendMessage(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -162,8 +188,67 @@ const ChatLogic = () => {
         <div className="messages-content">
           {messages.length === 0 && (
             <div className="empty-state">
-              <h1>NNUE ChessBot</h1>
-              <p>Start a game or ask a chess question.</p>
+              <h1>Start a game or ask a chess question.</h1>
+
+              <div className="cards-container">
+                {/* Start Game Card */}
+                <div className="action-card game-card">
+                  <h3>Start game as...</h3>
+                  <div className="buttons-row">
+                    <button
+                      className="game-btn white-btn"
+                      onClick={() => handleDirectSend("Start game as white")}
+                      title="Play as White"
+                    >
+                      <img src={whiteKing.src} alt="White King" />
+                      <span>W</span>
+                    </button>
+                    <button
+                      className="game-btn black-btn"
+                      onClick={() => handleDirectSend("Start game as black")}
+                      title="Play as Black"
+                    >
+                      <img src={blackQueen.src} alt="Black Queen" />
+                      <span>B</span>
+                    </button>
+                    <button
+                      className="game-btn random-btn"
+                      onClick={() => handleDirectSend("Start game")}
+                      title="Random Side"
+                    >
+                      <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                          d="M11.178 19.569a.998.998 0 0 0 1.644 0l9-13A.999.999 0 0 0 21 5H3a1.002 1.002 0 0 0-.822 1.569l9 13z"
+                          opacity="0.0"
+                        />{" "}
+                        {/* Spacer */}
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preset Questions Card */}
+                <div className="action-card presets-card">
+                  <div className="presets-list">
+                    <button
+                      onClick={() => handleDirectSend("Who is Magnus Carlson?")}
+                    >
+                      Who is Magnus Carlson?
+                    </button>
+                    <button
+                      onClick={() => handleDirectSend("What is En Passant?")}
+                    >
+                      What is En Passant?
+                    </button>
+                    <button
+                      onClick={() => handleDirectSend("Who created chess?")}
+                    >
+                      Who created chess?
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -206,6 +291,7 @@ const ChatLogic = () => {
           />
           <button
             type="submit"
+            className="send-btn"
             disabled={!inputValue.trim() || decideMutation.isPending}
           >
             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
@@ -243,13 +329,145 @@ const ChatLogic = () => {
            flex-direction: column;
            gap: 20px;
            box-sizing: border-box;
+           flex: 1; /* Allow content to fill area for centering */
         }
 
         .empty-state {
           text-align: center;
-          margin-top: 100px;
-          color: rgba(255,255,255,0.7);
-          margin-bottom: auto;
+          margin: auto; /* Center vertically and horizontally in flex column */
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 20px;
+        }
+
+        .cards-container {
+          display: flex;
+          flex-flow: row wrap;
+          gap: 20px;
+          justify-content: center;
+          margin-top: 20px;
+          width: 100%;
+        }
+
+        .action-card {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          min-width: 250px;
+        }
+
+        .game-card {
+          background: rgba(20, 20, 20, 0.6); /* Translucent dark similar to bot message */
+          backdrop-filter: blur(10px);
+          padding: 16px 0;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .action-card h3 {
+          margin: 0 0 16px 0;
+          font-size: 1.1rem;
+          color: rgba(255,255,255,0.9);
+          font-weight: 500;
+        }
+
+        .buttons-row {
+          display: flex;
+          gap: 15px;
+        }
+
+        .game-btn {
+          width: 60px;
+          height: 60px;
+          border-radius: 8px;
+          border: 1px solid rgba(255,255,255,0.2);
+          cursor: pointer;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          transition: border 0.1s, box-shadow 0.2s;
+          position: relative;
+          overflow: hidden;
+          padding: 0;
+        }
+
+        .game-btn:hover {
+          border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        .game-btn:active {
+          transform: scale(0.95);
+        }
+
+        .game-btn img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover; /* Cover background button */
+        }
+        
+        .game-btn span {
+          display: none; /* Hide text, just show icon/color */
+        }
+
+        /* White Button: Black Bkg, White King */
+        .white-btn {
+          background-color: #769656;
+        }
+        .white-btn:hover {
+          background-color: #769656;
+        }
+        .white-btn img {
+           transform: scale(0.8); /* Scale down piece slightly */
+        }
+
+        /* Black Button: White Bkg, Black Queen */
+        .black-btn {
+          background-color: #fff;
+        }
+        .black-btn:hover {
+          background-color: #fff;
+          border-color: rgba(0,0,0,0.6);
+        }
+        .black-btn img {
+           transform: scale(0.8);
+        }
+
+        /* Random Button */
+        .random-btn {
+          background: rgba(255,255,255,0.1);
+          color: #fff;
+        }
+        .random-btn svg {
+          width: 32px;
+          height: 32px;
+        }
+
+        .presets-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          width: 100%;
+        }
+
+        .presets-list button {
+          background: rgba(255,255,255,0.05); /* Very subtle button bg */
+          color: rgba(255,255,255,0.9);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 8px;
+          font-size: 0.95rem;
+          cursor: pointer;
+          transition: background 0.2s, border-color 0.2s;
+          width: 100%;
+          text-align: left;
+        }
+
+        .presets-list button:hover {
+          background: rgba(255,255,255,0.15);
+          border-color: rgba(255,255,255,0.3);
         }
 
         .message {
@@ -278,7 +496,7 @@ const ChatLogic = () => {
           background: rgba(40, 40, 40, 0.8);
           backdrop-filter: blur(10px);
           padding: 12px 16px;
-          border-radius: 18px;
+          border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.1);
           color: #fff;
           font-size: 1rem;
@@ -289,11 +507,11 @@ const ChatLogic = () => {
         .message.user .bubble {
           background: rgba(255, 255, 255, 0.15);
           border-color: rgba(255, 255, 255, 0.2);
-          border-radius: 18px 18px 4px 18px;
+          border-radius: 16px 16px 4px 16px;
         }
 
         .message.bot .bubble {
-           border-radius: 18px 18px 18px 4px;
+           border-radius: 16px 16px 16px 4px;
         }
 
         .board-wrapper {
@@ -308,10 +526,7 @@ const ChatLogic = () => {
 
         .input-area {
           padding: 20px;
-          background: transparent;
-          /* background: linear-gradient(to top, rgba(0,0,0,0.8), transparent); */
           position: relative;
-          z-index: 2;
           width: 100%;
           display: flex;
           justify-content: center;
@@ -323,7 +538,7 @@ const ChatLogic = () => {
           gap: 10px;
           background: rgba(20, 20, 20, 0.8);
           padding: 10px;
-          border-radius: 24px;
+          border-radius: 16px;
           border: 1px solid rgba(255, 255, 255, 0.2);
           backdrop-filter: blur(10px);
           align-items: flex-end;
@@ -352,7 +567,7 @@ const ChatLogic = () => {
           cursor: pointer;
           width: 40px;
           height: 40px;
-          border-radius: 50%;
+          border-radius: 12px;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -361,13 +576,13 @@ const ChatLogic = () => {
           padding: 0;
         }
 
-        button:hover:not(:disabled) {
+        .send-btn:hover:not(:disabled) {
           background: rgba(255, 255, 255, 0.1);
           color: #fff;
         }
         
         button:active:not(:disabled) {
-          transform: scale(0.95);
+          transform: scale(0.98);
         }
 
         button:disabled {
