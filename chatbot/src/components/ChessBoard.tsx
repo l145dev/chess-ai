@@ -71,18 +71,12 @@ const ChessBoard = ({ fen }: ChessBoardProps) => {
       {board.map((row, rowIndex) =>
         row.map((piece, colIndex) => {
           const isDark = (rowIndex + colIndex) % 2 === 1;
-          const squareColor = isDark ? "#b58863" : "#f0d9b5"; // Standard wood-ish colors, or maybe use "Chess.com" style green/white or "Lichess" generic
-          // User asked for "premium". Let's stick to neutral or allow CSS override.
-          // Or matching the "abstract black" background, maybe something grayscale or high contrast?
-          // The image snippet showed a standard board.
-          // Let's use a standard nice styling.
-          // I'll inline styles for simplicity as requested "board itself can be made with css in the component".
 
           return (
             <div
               key={`${rowIndex}-${colIndex}`}
               style={{
-                backgroundColor: isDark ? "#769656" : "#eeeed2", // Lichess-like green
+                backgroundColor: isDark ? "#769656" : "#eeeed2",
                 width: "100%",
                 height: "100%",
                 display: "flex",
