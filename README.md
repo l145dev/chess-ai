@@ -8,6 +8,7 @@ A custom chess bot designed for Lichess, powered by a hybrid Python/C# architect
 - **High-Performance Data Processing**: Uses a dedicated C# tool (.NET 9.0) to filter massive PGN datasets (100GB+) in minutes.
 - **Alpha-Beta Search**: Depth-limited search with alpha-beta pruning.
 - **Lichess Integration**: Connects directly to Lichess via API using `lichess-bot`.
+- **Web Interface**: A modern web-based chat and game interface built with Astro and React.
 
 ## Project Structure
 
@@ -16,11 +17,14 @@ A custom chess bot designed for Lichess, powered by a hybrid Python/C# architect
   - [Read more](engines/README.md)
 - **`data/process_data/`**: The C# tool for filtering raw PGN data.
   - [Read more](data/process_data/README.md)
+- **`chatbot/`**: The web-based chat and game interface (Astro/React).
+  - [Read more](chatbot/README.md)
 - **`lib/`**: Shared libraries and utilities.
 
 ## Prerequisites
 
 - **Python 3.6+**
+- **Node.js v18+** (for Web Interface)
 - **.NET SDK** (for data processing)
 - **Lichess Account** (for API token)
 
@@ -73,7 +77,19 @@ Train the NNUE model using the filtered data.
     python -m engines.bot.train
     ```
 
-### 3. Running the Bot
+### 3. Running the Application
+
+#### Web Interface (Recommended)
+
+Start the full stack (Web Interface + Engine) using the PowerShell script:
+
+```powershell
+.\chess_bot_web.ps1
+```
+
+This will check for dependencies and launch both the Astro dev server and the Python engine in separate windows. access the interface at `http://localhost:4321`.
+
+#### Lichess Bot
 
 Start the bot to connect to Lichess and play games.
 
