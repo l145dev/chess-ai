@@ -54,47 +54,45 @@ const ChatLogic = () => {
       return res.json();
     },
     onSuccess: (data) => {
-      // Data: { type: 'text' | 'fen', content: string, message?: string }
-      if (data.type === "fen") {
-        // If it's a board, we might also want to trigger the engine?
-        // Or just display it.
-        // The user flow: "User -> /decide -> Refine to FEN -> /engine (/chat) -> Move"
-        // Wait, "use that returned board fen to send to the NNUE model ... /api/engine ... which will give back the next move"
+      // Data types: "start_game", "fen" (user moved), "text"
 
-        // So if decides returns a FEN, we should verify/display it OR send it to engine.
-        // User said: "returned board fen to send to the NNUE model ... this will give back the next move... ideally the entire board fen ... visualized"
-
-        // So:
-        // 1. User says "play e4"
-        // 2. Decide API returns FEN (after e4)
-        // 3. We display that FEN (User's move)
-        // 4. Then we automatically call Engine with that FEN?
-        // Or does Decide return the FEN *before* the move and the engine plays?
-
-        // "goal is to have the user say a prompt, i will use a /refine api path which a small llm will refine into a logical board fen representation, this will be returned and i will use that returned board fen to send to the NNUE model ... /chat api path ... this will give back the next move"
-
-        // This implies the Frontend coordinates this.
-        // Step 1: /decide -> returns FEN (User's move fully applied, or just the state to analyze?)
-        // Let's assume /decide processes the user's intent into a board state (e.g. user says "move pawn to e4", /decide returns board with e4 played).
-        // Then we send that to /engine to get the BOT's response.
-
-        const userMoveFen = data.content;
-
-        // Add message with the board (User's move)
+      // 1. START GAME
+      if (data.type === "start_game") {
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now().toString(),
-            role: "bot", // Actually this is the result of the user's action visualized
-            content: data.message || "Here is the board:",
-            fen: userMoveFen,
+            role: "bot",
+            content: data.message,
+            fen: data.fen,
           },
         ]);
 
-        // Call Engine
-        engineMutation.mutate(userMoveFen);
-      } else {
-        // Just text response
+        // If autoPlay (Black side), immediately ask engine for a move
+        if (data.autoPlay) {
+          engineMutation.mutate(data.fen);
+        }
+      }
+
+      // 2. FEN (User moved successfully or explicit set)
+      else if (data.type === "fen") {
+        // Show the board state after user move
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: Date.now().toString(),
+            role: "bot", // Display as bot message generally, or "result"
+            content: data.message || "", // Usually empty for direct move
+            fen: data.content, // The FEN after user move
+          },
+        ]);
+
+        // Now Bot needs to move
+        engineMutation.mutate(data.content);
+      }
+
+      // 3. TEXT (Question answer)
+      else {
         setMessages((prev) => [
           ...prev,
           {
@@ -117,14 +115,15 @@ const ChatLogic = () => {
       return res.json();
     },
     onSuccess: (data) => {
-      // Data: { fen: string, move: string, ... }
       if (data.fen) {
         setMessages((prev) => [
           ...prev,
           {
             id: Date.now().toString(),
             role: "bot",
-            content: `I played ${data.move || "a move"}.`,
+            content: `I played ${
+              data.san || data.move || "a move"
+            }. Your turn!`,
             fen: data.fen,
           },
         ]);
@@ -182,7 +181,12 @@ const ChatLogic = () => {
           ))}
           {decideMutation.isPending && (
             <div className="message bot">
-              <div className="bubble loading">Thinking...</div>
+              <div className="bubble loading">Deciding...</div>
+            </div>
+          )}
+          {engineMutation.isPending && (
+            <div className="message bot">
+              <div className="bubble loading">Getting Move...</div>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -299,7 +303,6 @@ const ChatLogic = () => {
         }
 
         .loading {
-          font-style: italic;
           color: #aaa;
         }
 

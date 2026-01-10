@@ -1,4 +1,5 @@
 import type { APIRoute } from "astro";
+import { Chess } from "chess.js";
 import { groq } from "../../lib/groq";
 import { parseFenToText } from "../../utils/fenParser";
 
@@ -7,6 +8,8 @@ export const prerender = false;
 // Models
 const MODEL_ROUTER = "llama-3.1-8b-instant";
 const MODEL_SOLVER = "llama-3.3-70b-versatile";
+
+const START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 export const POST: APIRoute = async ({ request }) => {
   try {
@@ -18,6 +21,52 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    // --- STEP 0: DIRECT MOVE CHECK (LAN/SAN) ---
+    // If we have a board, checking if the input is a valid move takes precedence.
+    if (currentFen) {
+      try {
+        const chess = new Chess(currentFen);
+
+        // Regex for LAN (e.g., e2e4, a7a8q)
+        const lanRegex = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
+
+        let move = null;
+
+        if (lanRegex.test(prompt)) {
+          // Parse LAN to { from, to, promotion }
+          const from = prompt.substring(0, 2);
+          const to = prompt.substring(2, 4);
+          const promotion = prompt.length === 5 ? prompt[4] : undefined;
+
+          try {
+            move = chess.move({ from, to, promotion });
+          } catch (e) {
+            move = null;
+          }
+        } else {
+          // Fallback: Try playing it as SAN (User might still type "Nf3")
+          try {
+            move = chess.move(prompt);
+          } catch (e) {
+            move = null;
+          }
+        }
+
+        if (move) {
+          return new Response(
+            JSON.stringify({
+              type: "fen",
+              content: chess.fen(),
+              move: move.lan, // Return LAN for consistency
+              message: null, // No text message needed, just action
+            })
+          );
+        }
+      } catch (e) {
+        console.error("Chess.js error:", e);
+      }
+    }
+
     // --- STEP 1: CLASSIFICATION (ROUTER) ---
     // Classify user intent: START_GAME or QUESTION
     const classificationPrompt = `
@@ -25,13 +74,13 @@ export const POST: APIRoute = async ({ request }) => {
       
       Intent Categories:
       1. START_GAME: User wants to start a new game (e.g., "play chess", "start game as white", "I want to be black").
-      2. QUESTION: User is asking a question or making a statement (e.g., "Who is Magnus?", "Explain this board", "What's the best move?", "pawn to e4"). Note: "pawn to e4" is arguably a move, but for now treat it as a statement unless explicitly starting a game.
+      2. QUESTION: User is asking a question or making a statement (e.g., "Who is Magnus?", "Explain this board").
       
       Output JSON format ONLY:
       {
         "intent": "START_GAME" | "QUESTION",
         "side": "white" | "black" | "random" | null, // Only for START_GAME
-        "requiresBoard": boolean // True if the question is about the current board state (e.g., "best move?", "eval?", "what piece is this?")
+        "requiresBoard": boolean // True if the question is about the current board state
       }
 
       User Prompt: "${prompt}"
@@ -56,17 +105,24 @@ export const POST: APIRoute = async ({ request }) => {
 
     // CASE A: START GAME
     if (intent === "START_GAME") {
-      // For now, return the starting FEN constant.
-      // In the future, this might set up a session or configure the engine side.
-      const START_FEN =
-        "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+      const userSide = side ? side.toLowerCase() : "random";
+      const finalSide =
+        userSide === "random"
+          ? Math.random() < 0.5
+            ? "white"
+            : "black"
+          : userSide;
+
       return new Response(
         JSON.stringify({
-          type: "fen",
-          content: START_FEN,
-          message: `Game started! You are playing as ${
-            side || "random"
-          }. Good luck!`,
+          type: "start_game",
+          side: finalSide,
+          fen: START_FEN,
+          // If user is black, they need the bot to move first (autoPlay).
+          autoPlay: finalSide === "black",
+          message: `Game started! You are playing as ${finalSide}. ${
+            finalSide === "white" ? "(Your move)" : "(Bot is moving...)"
+          }`,
         })
       );
     }
@@ -74,14 +130,11 @@ export const POST: APIRoute = async ({ request }) => {
     // CASE B: QUESTION
     if (intent === "QUESTION") {
       let systemContext =
-        "You are a helpful, premium chess assistant. Be concise, professional, and knowledgeable.";
+        'You are a helpful, premium chess assistant. Be concise, professional, and knowledgeable. If the user wants to know what this is, respond saying that you are a custom NNUE engine which the user can play with by saying "start game (as white/black/random)".';
 
       if (requiresBoard && currentFen) {
         const boardDescription = parseFenToText(currentFen);
         systemContext += `\n\nCURRENT BOARD STATE:\n${boardDescription}\n\nThe user is asking about this specific board position. Use the provided details to reason your answer.`;
-      } else if (requiresBoard && !currentFen) {
-        // User asked about board but no FEN provided (start of chat maybe?)
-        // context += "\n\n(No active board state provided, answer generally)";
       }
 
       const solverCompletion = await groq.chat.completions.create({
