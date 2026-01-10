@@ -264,7 +264,7 @@ const ChatLogic = () => {
           ))}
           {decideMutation.isPending && (
             <div className="message bot">
-              <div className="bubble loading">Deciding...</div>
+              <div className="bubble loading">Thinking...</div>
             </div>
           )}
           {engineMutation.isPending && (
