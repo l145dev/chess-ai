@@ -16,7 +16,7 @@ type Message = {
   fen?: string; // if present, display board
 };
 
-const ChatInterface: React.FC = () => {
+const ChatInterface = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ChatLogic />
@@ -24,7 +24,7 @@ const ChatInterface: React.FC = () => {
   );
 };
 
-const ChatLogic: React.FC = () => {
+const ChatLogic = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);

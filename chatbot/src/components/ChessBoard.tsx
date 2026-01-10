@@ -1,5 +1,3 @@
-import React from "react";
-
 // Import piece assets
 import bB from "../assets/pieces-png/black-bishop.png";
 import bK from "../assets/pieces-png/black-king.png";
@@ -34,7 +32,7 @@ interface ChessBoardProps {
   fen: string;
 }
 
-const ChessBoard: React.FC<ChessBoardProps> = ({ fen }) => {
+const ChessBoard = ({ fen }: ChessBoardProps) => {
   // Parse FEN
   // Example FEN: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR"
   // We only care about the piece placement part (index 0)
