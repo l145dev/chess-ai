@@ -230,7 +230,7 @@ const ChatLogic = () => {
                 <div className="action-card presets-card">
                   <div className="presets-list">
                     <button
-                      onClick={() => handleDirectSend("Who is Magnus Carlson?")}
+                      onClick={() => handleDirectSend("Who is Magnus Carlsen?")}
                     >
                       Who is Magnus Carlson?
                     </button>

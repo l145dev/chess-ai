@@ -1,7 +1,5 @@
 import type { APIRoute } from "astro";
 
-export const prerender = false;
-
 export const POST: APIRoute = async ({ request }) => {
   // Receives FEN in body
   // Returns next FEN (random move or fixed response for testing)

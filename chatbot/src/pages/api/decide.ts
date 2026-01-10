@@ -3,8 +3,6 @@ import { Chess } from "chess.js";
 import { groq } from "../../lib/groq";
 import { parseFenToText } from "../../utils/fenParser";
 
-export const prerender = false;
-
 // Models
 const MODEL_ROUTER = "llama-3.1-8b-instant";
 const MODEL_SOLVER = "llama-3.3-70b-versatile";
