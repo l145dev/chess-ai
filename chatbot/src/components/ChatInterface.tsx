@@ -195,9 +195,9 @@ const ChatLogic = () => {
             value={inputValue}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder="En Passant"
             rows={1}
-            style={{ fieldSizing: "content" } as any} // Cast for TS if fieldSizing not yet known
+            style={{ fieldSizing: "content" }}
           />
           <button
             type="submit"
