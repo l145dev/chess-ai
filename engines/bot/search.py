@@ -171,7 +171,7 @@ class Searcher:
         key = (board.turn, move.from_square, move.to_square)
         return self.history.get(key, 0)
 
-    # Recursive helper for SEE
+    # Recursive helper for SEE -> battle on the square
     def see_exchange(self, board, square):
         value = 0
         
@@ -207,7 +207,7 @@ class Searcher:
         
         return value
 
-    # Static Exchange Evaluation (SEE) -> Returns True if the capture wins/equals material
+    # Static Exchange Evaluation (SEE) -> Returns True if the capture wins/equals material (avoid fake wins)
     def see_capture(self, board, move):
         # Gain the value of the victim
         value = PIECE_VALUES[board.piece_at(move.to_square).piece_type]
@@ -303,6 +303,7 @@ class Searcher:
             if board.is_checkmate(): return -MATE_SCORE + ply
             return 0
 
+        # Depth budget over, make dumb and fast decision with quiescence search (aggressive)
         if depth <= 0:
             return self.quiescence(board, alpha, beta, acc_w, acc_b)
 
@@ -338,7 +339,7 @@ class Searcher:
             if i == 0:
                 score = -self.pvs(board, depth - 1, -beta, -alpha, nw, nb, ply + 1)
             else:
-                # Late Move Reduction (LMR) -> Prune branches that are not promising
+                # Late Move Reduction (LMR) -> Prune branches that are not promising (removes "boring" moves)
                 reduction = 0
                 if depth >= 3 and i >= 3 and not board.is_capture(move) and not board.is_check():
                      prior = self.history.get((board.turn, move.from_square, move.to_square), 0)
@@ -350,6 +351,7 @@ class Searcher:
                 score = -self.pvs(board, depth - 1 - reduction, -alpha - 1, -alpha, nw, nb, ply + 1)
                 
                 # Re-search if failed high or reduced -> Re-search if the score is higher than the alpha or if the reduction was too high
+                # AKA "wait this move is actually good, run pvs search again"
                 if score > alpha and (score < beta or reduction > 0):
                     score = -self.pvs(board, depth - 1, -beta, -alpha, nw, nb, ply + 1)
             
