@@ -209,8 +209,13 @@ class Searcher:
 
     # Static Exchange Evaluation (SEE) -> Returns True if the capture wins/equals material (avoid fake wins)
     def see_capture(self, board, move):
-        # Gain the value of the victim
-        value = PIECE_VALUES[board.piece_at(move.to_square).piece_type]
+        if board.is_en_passant(move):
+            value = PIECE_VALUES[chess.PAWN]
+        else:
+            piece = board.piece_at(move.to_square)
+            # Safety check, though is_capture() implies a piece is there (unless EP)
+            if piece is None: return False 
+            value = PIECE_VALUES[piece.piece_type]
         
         # Perform the initial capture on a copy/fast board
         
