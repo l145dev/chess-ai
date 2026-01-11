@@ -171,6 +171,56 @@ class Searcher:
         key = (board.turn, move.from_square, move.to_square)
         return self.history.get(key, 0)
 
+    # Recursive helper for SEE
+    def see_exchange(self, board, square):
+        value = 0
+        
+        # Find the least valuable attacker for the side to move
+        attackers = board.attackers(board.turn, square)
+        attacker = None
+        attacker_val = INF
+        from_sq = None
+
+        for sq in attackers:
+            piece = board.piece_at(sq)
+            val = PIECE_VALUES[piece.piece_type]
+            if val < attacker_val:
+                attacker_val = val
+                attacker = piece
+                from_sq = sq
+        
+        if attacker is None:
+            return 0 # No one can recapture
+
+        # Simulate the recapture
+        # Expensive for python chess (slow calculation)
+        move = chess.Move(from_sq, square)
+        
+        # Promotion check (simplified)
+        if attacker.piece_type == chess.PAWN and chess.square_rank(square) in [0, 7]:
+            attacker_val = PIECE_VALUES[chess.QUEEN] - PIECE_VALUES[chess.PAWN] # Gain promotion value
+            move.promotion = chess.QUEEN
+
+        board.push(move)
+        value = max(0, attacker_val - self.see_exchange(board, square))
+        board.pop()
+        
+        return value
+
+    # Static Exchange Evaluation (SEE) -> Returns True if the capture wins/equals material
+    def see_capture(self, board, move):
+        # Gain the value of the victim
+        value = PIECE_VALUES[board.piece_at(move.to_square).piece_type]
+        
+        # Perform the initial capture on a copy/fast board
+        
+        # Fast approximate SEE:
+        board.push(move)
+        score = value - self.see_exchange(board, move.to_square)
+        board.pop()
+        
+        return score >= 0
+
     # Quiescence Search (Search captures only) -> Search captures only to avoid infinite search
     def quiescence(self, board, alpha, beta, acc_w, acc_b):
         self.check_time()
@@ -202,6 +252,11 @@ class Searcher:
         moves.sort(key=lambda m: self.mvv_lva(board, m), reverse=True)
         
         for move in moves:
+            # SEE PRUNING: Only prune if NOT in check (priority to get out of check)
+            # and the move is a losing capture.
+            if not in_check and not self.see_capture(board, move): 
+                continue # Skip this bad capture!
+                
             nw, nb = self.get_accumulators(board, move, acc_w, acc_b)
             board.push(move)
             score = -self.quiescence(board, -beta, -alpha, nw, nb)
