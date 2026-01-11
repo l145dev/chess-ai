@@ -1,4 +1,4 @@
-# NNUE ChessBot Web Interface
+# NNUE Chess Chatbot Web Interface
 
 A modern, interactive web interface for the Neural Network Updated Evaluation (NNUE) ChessBot.
 
@@ -12,6 +12,39 @@ A modern, interactive web interface for the Neural Network Updated Evaluation (N
 - **AI Integration**: Powered by **Groq** for conversational capabilities.
 - **Responsive Design**: Fully responsive UI with a premium, dark-themed aesthetic.
 - **Reset Functionality**: Click the Rook icon (top-left) to instantly reset the chat and game state.
+
+## Agentic Architecture
+
+The chatbot operates on a prioritized decision workflow:
+
+0.  **Direct Play (NNUE Engine)**:
+    - *Priority Check*: The system first checks if the input is a valid chess move (e.g., `e2e4`, `Nf3`).
+    - If valid, it **bypasses the LLM entirely** and executes the move directly against the custom NNUE engine for maximum speed.
+1.  **Router (Llama-3.1-8b-instant)**:
+    - If not a move, the Router classifies intent: `START_GAME` or `QUESTION`.
+    - Determines which side the user wants to play or if the question requires board context.
+2.  **Solver (Llama-3.3-70b-versatile)**:
+    - If `QUESTION`: The system prompts a more capable model to answer, injecting board state if needed.
+
+### Workflow Diagram
+
+```mermaid
+graph TD
+    A[User Input] --> B{Is Valid Move?}
+    B -->|Yes| C[Execute Move via NNUE Engine]
+    B -->|No| D{Router <br/> Llama-8b}
+    D -->|Intent: START_GAME| E[Initialize Game]
+    D -->|Intent: QUESTION| F{Requires Board?}
+    E --> G[Determine Side]
+    G -->|User=Black| H[Auto-Play Agent Move]
+    G -->|User=White| I[Wait for User Move]
+    F -->|Yes| J[Parse FEN to Text]
+    F -->|No| K[Direct Question]
+    J --> L[Injector]
+    K --> L
+    L --> M[Solver <br/> Llama-70b]
+    M --> N[Generate Answer]
+```
 
 ## Tech Stack
 
