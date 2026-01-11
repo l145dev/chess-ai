@@ -155,9 +155,11 @@ class Searcher:
 
     # Move Scoring -> Score moves based on transposition table, killers, history, and MVV-LVA
     def score_move(self, board, move, tt_move, ply):
+        # assumption: the move which was best at depth 1 is still the best move at depth 5 (give priority)
         if move == tt_move:
             return 2_000_000
         
+        # assumption: taking pieces is usually good
         if board.is_capture(move):
             return 1_000_000 + self.mvv_lva(board, move)
             
