@@ -6,7 +6,13 @@ Agentic Chess AI featuring a custom NNUE engine and C# PGN pipeline. Web UI Buil
 
 - **Custom NNUE Engine**: Implements a HalfKP architecture with dual accumulators for efficient evaluation.
 - **High-Performance Data Processing**: Uses a dedicated C# tool (.NET 9.0) to filter massive PGN datasets (100GB+) in minutes.
-- **Alpha-Beta Search**: Depth-limited search with alpha-beta pruning.
+- **Advanced Search Engine**:
+  - **PVS (Principal Variation Search)**: NegaScout variant for optimal node visiting.
+  - **Quiescence Search**: Mitigates horizon effect by searching volatile positions (captures/promotions).
+  - **Transposition Table**: Zobrist hashing to cache evaluations and search results.
+  - **Iterative Deepening**: Time-managed search depth progression.
+  - **Move Ordering**: MVV-LVA, Killer Heuristic, and History Heuristic.
+  - **Pruning & Reduction**: Null Move Pruning and Late Move Reduction (LMR).
 - **Lichess Integration**: Connects directly to Lichess via API using `lichess-bot`.
 - **Web Interface**: A modern web-based chat and game interface built with Astro and React.
 
