@@ -37,6 +37,7 @@ The model uses a standard NNUE architecture with **HalfKP** features:
   - **Null Move Pruning (NMP)**: Prunes subtrees where passing the move is still too good for the opponent.
   - **Late Move Reductions (LMR)**: Reduces search depth for quiet moves late in the move order.
   - **MVV-LVA Move Ordering**: Prioritizes capturing valuable pieces with less valuable ones.
+  - **Static Exchange Evaluation (SEE)**: Filters out losing captures in Quiescence Search to save time.
   - **History & Killer Heuristics**: Guidelines to improved move ordering based on past search results.
   - **Transposition Table**: Zobrist Hashing to cache and retrieve search results.
   - **Check Extensions**: Extends search depth when in check.
@@ -65,12 +66,12 @@ The model uses a standard NNUE architecture with **HalfKP** features:
 - **`main.py`**: The interface entry point.
   - Wraps `search.py` to provide a simple `get_move(board)` API.
 
-
 ### How it works
 
 This focuses on how the bot engine works.
 
 #### 1. Network Architecture
+
 The brain of the engine is a standard NNUE (Efficiently Updatable Neural Network) model. It is a shallow, dense network optimized for extremely fast inference on the CPU.
 
 ```mermaid
@@ -79,22 +80,22 @@ graph TD
         HKP_US["HalfKP (Us)"]
         HKP_THEM["HalfKP (Them)"]
     end
-    
+
     subgraph "Feature Transformer (The 'Heavy' Lifting)"
         FT["EmbeddingBag (40k -> 256)"]
         ACC_US["Accumulator Us (256)"]
         ACC_THEM["Accumulator Them (256)"]
-        
+
         HKP_US --> FT --> ACC_US
         HKP_THEM --> FT --> ACC_THEM
     end
-    
+
     subgraph "Hidden Layers (Forward Pass)"
         CONCAT["Concatenation (512)"]
         L1["Linear 128 + ReLU"]
         L2["Linear 1 (Output)"]
         SIGMOID["Sigmoid/Score"]
-        
+
         ACC_US --> CONCAT
         ACC_THEM --> CONCAT
         CONCAT --> L1 --> L2 --> SIGMOID
@@ -102,13 +103,14 @@ graph TD
 ```
 
 #### 2. Data Pipeline
+
 How raw chess games become tensors for the neural network.
 
 ```mermaid
 graph LR
     PGN["Raw PGN Files"] -->|preprocess.py| PROCESS["Processing & Filtering"]
     PROCESS --> CHUNKS["Processed Tensors (.pt)"]
-    
+
     subgraph "Training Loop (train.py)"
         CHUNKS -->|dataset.py| LOADER["DataLoader"]
         LOADER -->|Batch| MODEL["NNUE Model"]
@@ -117,27 +119,30 @@ graph LR
 ```
 
 #### 3. Search Logic
+
 How the bot decides which move to make in real-time.
 
 ```mermaid
 graph TD
     START("Root Position") --> ID["Iterative Deepening (Depth 1..N)"]
     ID --> PVS["Principal Variation Search (Alpha-Beta)"]
-    
+
     subgraph "Search Optimizations"
         TT["Transposition Table (Cache)"]
         NMP["Null Move Pruning"]
         LMR["Late Move Reduction"]
+        SEE["Static Exchange Eval"]
         Q["Quiescence Search (Tactics)"]
     end
-    
+
     PVS <--> TT
     PVS -->|Pruning?| NMP
     PVS -->|Quiet Move?| LMR
     PVS -->|Leaf Node?| Q
-    
+    Q -->|Prune Bad Captures| SEE
+
     Q -->|Eval| NNUE["NNUE Evaluation"]
-    
+
     NNUE -->|Score| PVS
     PVS -->|Best Move| RESULT("Best Move Found")
 ```
