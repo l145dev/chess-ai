@@ -2,9 +2,9 @@
 
 This directory contains the chess engines used by the bot.
 
-## MLP/NNUE Bot (`engines/bot`)
+## NNUE Bot (`engines/bot`)
 
-This is a custom chess engine powered by a Multi-Layer Perceptron (MLP) with an NNUE (Efficiently Updatable Neural Network) architecture. It evaluates board positions to select the best move.
+This is a custom chess engine powered by an NNUE (Efficiently Updatable Neural Network) architecture. It evaluates board positions to select the best move.
 
 ### Architecture
 
