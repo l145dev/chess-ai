@@ -4,6 +4,7 @@ import {
   useMutation,
 } from "@tanstack/react-query";
 import React, { useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import blackQueen from "../assets/pieces-png/black-queen.png";
 import whiteKing from "../assets/pieces-png/white-king.png";
 import "../styles/ChatInterface.css";
@@ -253,7 +254,7 @@ const ChatLogic = () => {
           {messages.map((msg) => (
             <div key={msg.id} className={`message ${msg.role}`}>
               <div className="bubble">
-                {msg.content && <p>{msg.content}</p>}
+                {msg.content && <ReactMarkdown>{msg.content}</ReactMarkdown>}
                 {msg.fen && (
                   <div className="board-wrapper">
                     <ChessBoard fen={msg.fen} />

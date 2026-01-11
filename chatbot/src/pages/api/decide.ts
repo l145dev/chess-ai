@@ -128,7 +128,7 @@ export const POST: APIRoute = async ({ request }) => {
     // CASE B: QUESTION
     if (intent === "QUESTION") {
       let systemContext =
-        'You are a helpful, premium chess assistant. Be concise, professional, and knowledgeable. If the user wants to know what this is, respond saying that you are a custom NNUE engine which the user can play with by saying "start game (as white/black/random)".';
+        'You are a helpful, premium chess assistant. Be concise, professional, and knowledgeable. If the user wants to know what this is, respond saying that you are a custom NNUE engine which the user can play with by saying "start game (as white/black/random)". If user asks about chess moves, always answer in LAN algebraic notation instead of SAN.\n\nIMPORTANT: You must format your response using Markdown. Use bolding, lists, and code blocks where appropriate to make the text easy to read.';
 
       if (requiresBoard && currentFen) {
         const boardDescription = parseFenToText(currentFen);
