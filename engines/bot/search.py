@@ -211,6 +211,14 @@ class Searcher:
                 alpha = score
         return alpha
 
+    # Helper to check for non-pawn pieces (Zugzwang protection -> NMP hallucination fix)
+    def has_non_pawn_material(self, board, color):
+        # Check if there is at least one Knight, Bishop, Rook, or Queen
+        for piece_type in [chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]:
+            if board.pieces(piece_type, color):
+                return True
+        return False
+
     # Principal Variation Search (PVS) -> Search the best move first
     def pvs(self, board, depth, alpha, beta, acc_w, acc_b, ply, can_null=True):
         self.check_time()
@@ -243,18 +251,19 @@ class Searcher:
 
         # Null Move Pruning (NMP) -> Prune branches that are not promising
         # Conditions: depth >= 3, not in check, not PV node (beta-alpha > 1 usually implies PV, but here simply if not root/check)
-        # Assuming we don't pass if we have risk of zugzwang (pawns only). Simplified check:
         if can_null and depth >= 3 and not board.is_check() and beta < MATE_SCORE:
-             # Static eval check
-             static_eval = self.evaluate(board, acc_w, acc_b)
-             if static_eval >= beta:
-                 R = 2 if depth > 6 else 2 # Reduction
-                 board.push(chess.Move.null())
-                 # Pass same accumulators as pieces didn't move
-                 score = -self.pvs(board, depth - 1 - R, -beta, -beta + 1, acc_w, acc_b, ply + 1, can_null=False)
-                 board.pop()
-                 if score >= beta:
-                     return beta
+            # Check if we have non-pawn material (Zugzwang protection)
+            if self.has_non_pawn_material(board, board.turn):
+                # Static eval check
+                static_eval = self.evaluate(board, acc_w, acc_b)
+                if static_eval >= beta:
+                    R = 2 if depth > 6 else 2 # Reduction
+                    board.push(chess.Move.null())
+                    # Pass same accumulators as pieces didn't move
+                    score = -self.pvs(board, depth - 1 - R, -beta, -beta + 1, acc_w, acc_b, ply + 1, can_null=False)
+                    board.pop()
+                    if score >= beta:
+                        return beta
 
         # Move Ordering -> Order moves to try the best moves first
         moves = list(board.legal_moves)
