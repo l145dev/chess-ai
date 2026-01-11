@@ -1,6 +1,6 @@
-# Lichess Bot with NNUE Engine
+# Web Chess Chatbot / Lichess Bot with NNUE Engine
 
-A custom chess bot designed for Lichess, powered by a hybrid Python/C# architecture. It features a custom NNUE (Efficiently Updatable Neural Network) evaluation engine and a high-performance C# data processing pipeline.
+Agentic Chess AI featuring a custom NNUE engine and C# PGN pipeline. Web UI Built with Astro/React/FastAPI, it offers two modes: a standalone Lichess engine and an interactive AI web chatbot for gameplay and chatting.
 
 ## Features
 
