@@ -65,6 +65,87 @@ The model uses a standard NNUE architecture with **HalfKP** features:
 - **`main.py`**: The interface entry point.
   - Wraps `search.py` to provide a simple `get_move(board)` API.
 
+
+### How it works
+
+This focuses on how the bot engine works.
+
+#### 1. Network Architecture
+The brain of the engine is a standard NNUE (Efficiently Updatable Neural Network) model. It is a shallow, dense network optimized for extremely fast inference on the CPU.
+
+```mermaid
+graph TD
+    subgraph "Input Feature (Sparse)"
+        HKP_US["HalfKP (Us)"]
+        HKP_THEM["HalfKP (Them)"]
+    end
+    
+    subgraph "Feature Transformer (The 'Heavy' Lifting)"
+        FT["EmbeddingBag (40k -> 256)"]
+        ACC_US["Accumulator Us (256)"]
+        ACC_THEM["Accumulator Them (256)"]
+        
+        HKP_US --> FT --> ACC_US
+        HKP_THEM --> FT --> ACC_THEM
+    end
+    
+    subgraph "Hidden Layers (Forward Pass)"
+        CONCAT["Concatenation (512)"]
+        L1["Linear 128 + ReLU"]
+        L2["Linear 1 (Output)"]
+        SIGMOID["Sigmoid/Score"]
+        
+        ACC_US --> CONCAT
+        ACC_THEM --> CONCAT
+        CONCAT --> L1 --> L2 --> SIGMOID
+    end
+
+    style FT fill:#f9f,stroke:#333
+    style ACC_US fill:#bbf,stroke:#333
+    style ACC_THEM fill:#bbf,stroke:#333
+```
+
+#### 2. Data Pipeline
+How raw chess games become tensors for the neural network.
+
+```mermaid
+graph LR
+    PGN["Raw PGN Files"] -->|preprocess.py| PROCESS["Processing & Filtering"]
+    PROCESS --> CHUNKS["Processed Tensors (.pt)"]
+    
+    subgraph "Training Loop (train.py)"
+        CHUNKS -->|dataset.py| LOADER["DataLoader"]
+        LOADER -->|Batch| MODEL["NNUE Model"]
+        OPTIM["Optimizer"] -->|Update| MODEL
+    end
+```
+
+#### 3. Search Logic
+How the bot decides which move to make in real-time.
+
+```mermaid
+graph TD
+    START("Root Position") --> ID["Iterative Deepening (Depth 1..N)"]
+    ID --> PVS["Principal Variation Search (Alpha-Beta)"]
+    
+    subgraph "Search Optimizations"
+        TT["Transposition Table (Cache)"]
+        NMP["Null Move Pruning"]
+        LMR["Late Move Reduction"]
+        Q["Quiescence Search (Tactics)"]
+    end
+    
+    PVS <--> TT
+    PVS -->|Pruning?| NMP
+    PVS -->|Quiet Move?| LMR
+    PVS -->|Leaf Node?| Q
+    
+    Q -->|Eval| NNUE["NNUE Evaluation"]
+    
+    NNUE -->|Score| PVS
+    PVS -->|Best Move| RESULT("Best Move Found")
+```
+
 ### Usage
 
 1.  **Data Preparation**:
