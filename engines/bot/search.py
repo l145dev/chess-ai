@@ -219,7 +219,7 @@ class Searcher:
                 return True
         return False
 
-    # Principal Variation Search (PVS) -> Search the best move first
+    # Principal Variation Search (PVS) -> Search the best move first (optimistic alpha-beta pruning -> much faster than traditional alpha-beta pruning)
     def pvs(self, board, depth, alpha, beta, acc_w, acc_b, ply, can_null=True):
         self.check_time()
         if self.stopped: return 0
