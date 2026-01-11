@@ -99,10 +99,6 @@ graph TD
         ACC_THEM --> CONCAT
         CONCAT --> L1 --> L2 --> SIGMOID
     end
-
-    style FT fill:#f9f,stroke:#333
-    style ACC_US fill:#bbf,stroke:#333
-    style ACC_THEM fill:#bbf,stroke:#333
 ```
 
 #### 2. Data Pipeline
