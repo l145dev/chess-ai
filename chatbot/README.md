@@ -18,11 +18,13 @@ A modern, interactive web interface for the Neural Network Updated Evaluation (N
 The chatbot operates on a prioritized decision workflow:
 
 0.  **Direct Play (NNUE Engine)**:
-    - *Priority Check*: The system first checks if the input is a valid chess move (e.g., `e2e4`, `Nf3`).
+    - _Priority Check_: The system first checks if the input is a valid chess move (e.g., `e2e4`, `Nf3`).
     - If valid, it **bypasses the LLM entirely** and executes the move directly against the custom NNUE engine for maximum speed.
 1.  **Router (Llama-3.1-8b-instant)**:
-    - If not a move, the Router classifies intent: `START_GAME` or `QUESTION`.
-    - Determines which side the user wants to play or if the question requires board context.
+    - If not a move, the Router classifies intent: `START_GAME` or `QUESTION` or `PLAY_MOVE`.
+    - `PLAY_MOVE`: decodes to a LAN move if possible, handles errors gracefully.
+    - `START_GAME`: Determines which side the user wants to play or if the question requires board context.
+    - `QUESTION`: The system prompts a more capable model to answer, injecting board state if needed.
 2.  **Solver (Llama-3.3-70b-versatile)**:
     - If `QUESTION`: The system prompts a more capable model to answer, injecting board state if needed.
 
@@ -48,19 +50,19 @@ graph TD
 
 ## Tech Stack
 
-- **Framework**: [Astro](https://astro.build/) (Static Site Generation / SSR)
+- **Framework**: [Astro](https://astro.build/) (Static Site Generation)
 - **UI Library**: [React](https://reactjs.org/)
 - **State Management**: [TanStack Query (React Query)](https://tanstack.com/query/latest)
 - **Styling**: Vanilla CSS, Scoped CSS Modules
-- **LLM Provider**: [Groq](https://groq.com/)
-- **Server**: [FastAPI](https://fastapi.tiangolo.com/) (Python)
+- **LLM Provider**: [Groq](https://groq.com/) (Managed by Python Backend)
+- **Server**: [FastAPI](https://fastapi.tiangolo.com/) (Python) - Handles logic, LLM, and Engine
 
 ## Project Structure
 
 - `src/components/`: React components (`ChatInterface`, `ChessBoard`).
 - `src/layouts/`: Astro layouts (`Layout.astro`).
-- `src/pages/`: Astro pages and API endpoints (`api/decide.ts`, `api/engine.ts`).
-- `src/lib/`: Utilities and SDK clients (`groq.ts`).
+- `src/pages/`: Astro pages (Static).
+- `src/lib/`: Utilities (`fenParser.ts`).
 - `src/styles/`: Global and shared styles.
 
 ## Getting Started
@@ -73,7 +75,7 @@ graph TD
 
 ### Configuration
 
-Create a `.env` file in the `chatbot/` directory with your Groq API Key:
+Create a `.env` file in the **root** directory (not `chatbot/`) with your Groq API Key, as it is now used by the Python backend:
 
 ```env
 GROQ_API_KEY=gsk_your_key_here
@@ -104,7 +106,7 @@ Or run them manually:
 2.  **Backend Engine**:
     ```bash
     # From project root
-    python -m server.server
+    python -m server.main
     ```
 
 Access the web interface at `http://localhost:4321`.

@@ -14,7 +14,7 @@ Agentic Chess AI featuring a custom NNUE engine and C# PGN pipeline. Web UI Buil
   - **Move Ordering**: MVV-LVA, Killer Heuristic, and History Heuristic.
   - **Pruning & Reduction**: Null Move Pruning and Late Move Reduction (LMR).
 - **Lichess Integration**: Connects directly to Lichess via API using `lichess-bot`.
-- **Web Interface**: A modern web-based chat and game interface built with Astro and React.
+- **Web Interface**: A modern web-based chat and game interface built with Astro (Static) and React, backed by a FastAPI Python server.
 
 ## Project Structure
 
