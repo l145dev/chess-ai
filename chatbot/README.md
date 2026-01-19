@@ -36,16 +36,23 @@ graph TD
     B -->|Yes| C[Execute Move via NNUE Engine]
     B -->|No| D{Router <br/> Llama-8b}
     D -->|Intent: START_GAME| E[Initialize Game]
+    D -->|Intent: PLAY_MOVE| N[Extract LAN Move]
     D -->|Intent: QUESTION| F{Requires Board?}
+
+    N --> O{Is Valid?}
+    O -->|Yes| C
+    O -->|No| P[Smart Error / Clarification]
+
     E --> G[Determine Side]
     G -->|User=Black| H[Auto-Play Agent Move]
     G -->|User=White| I[Wait for User Move]
+
     F -->|Yes| J[Parse FEN to Text]
     F -->|No| K[Direct Question]
     J --> L[Injector]
     K --> L
     L --> M[Solver <br/> Llama-70b]
-    M --> N[Generate Answer]
+    M --> Q[Generate Answer]
 ```
 
 ## Tech Stack
@@ -62,7 +69,7 @@ graph TD
 - `src/components/`: React components (`ChatInterface`, `ChessBoard`).
 - `src/layouts/`: Astro layouts (`Layout.astro`).
 - `src/pages/`: Astro pages (Static).
-- `src/lib/`: Utilities (`fenParser.ts`).
+- `src/utils/`: Utilities (`fenParser.ts`).
 - `src/styles/`: Global and shared styles.
 
 ## Getting Started

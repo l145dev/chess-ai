@@ -63,7 +63,7 @@ const ChatLogic = () => {
       const lastFenMessage = [...messages].reverse().find((m) => m.fen);
       const currentFen = lastFenMessage?.fen;
 
-      const res = await fetch("http://localhost:8000/decide", {
+      const res = await fetch(import.meta.env.PUBLIC_API_URL + "/decide", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt, currentFen }),
@@ -124,7 +124,7 @@ const ChatLogic = () => {
 
   const engineMutation = useMutation({
     mutationFn: async (fen: string) => {
-      const res = await fetch("http://localhost:8000/move", {
+      const res = await fetch(import.meta.env.PUBLIC_API_URL + "/move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ fen }),
