@@ -15,3 +15,4 @@ engines/bot/model/*
 data/process_data/bin/
 data/process_data/obj/
 data/process_data/.vs/
+.env
