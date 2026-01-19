@@ -27,6 +27,6 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$chatbotPath'
 # 3. Start Python Engine
 Write-Host "Starting Python Chess Engine..."
 # Runs from root, opens in a new window
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$rootPath'; python -m server.server"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$rootPath'; python -m server.main"
 
 Write-Host "Servers started in separate windows."
