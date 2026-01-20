@@ -250,6 +250,11 @@ form {
   align-items: flex-end;
   width: 100%;
   max-width: 800px;
+  transition: border-color 0.1s ease-out;
+}
+
+form:focus-within {
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 textarea {
