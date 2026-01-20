@@ -3,17 +3,25 @@ import os
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 
 # Ensure the root directory is in sys.path to allow importing from engines
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from server.routes import decide, move
 
+load_dotenv()
+
 app = FastAPI()
+
+origins = ["https://www.l145.be", "https://l145.be"]
+
+if os.getenv("ENVIRONMENT") == "development":
+    origins.append("http://localhost:4321")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://www.l145.be", "https://l145.be"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

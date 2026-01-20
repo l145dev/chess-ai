@@ -19,6 +19,7 @@ COPY server /app/server
 COPY .env .
 
 ENV PYTHONPATH=/app
+ENV ENVIRONMENT=production
 EXPOSE 80
 
 CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "80"]
