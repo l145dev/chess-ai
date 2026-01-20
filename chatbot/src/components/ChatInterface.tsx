@@ -291,6 +291,7 @@ const ChatLogic = () => {
             placeholder="Is this impractical?"
             rows={1}
             style={{ fieldSizing: "content" }}
+            autoFocus={true}
           />
           <button
             type="submit"
