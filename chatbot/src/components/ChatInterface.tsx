@@ -265,12 +265,16 @@ const ChatLogic = () => {
           ))}
           {decideMutation.isPending && (
             <div className="message bot">
-              <div className="bubble loading">Thinking...</div>
+              <div className="bubble loading gradient-animation">
+                Thinking...
+              </div>
             </div>
           )}
           {engineMutation.isPending && (
             <div className="message bot">
-              <div className="bubble loading">Getting Move...</div>
+              <div className="bubble loading gradient-animation">
+                Getting Move...
+              </div>
             </div>
           )}
           <div ref={messagesEndRef} />

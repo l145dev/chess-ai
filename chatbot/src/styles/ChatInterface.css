@@ -84,7 +84,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: border 0.1s, box-shadow 0.2s;
+  transition:
+    border 0.1s,
+    box-shadow 0.2s;
   position: relative;
   overflow: hidden;
   padding: 0;
@@ -156,7 +158,9 @@
   border-radius: 8px;
   font-size: 0.95rem;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
   width: 100%;
   text-align: left;
 }
@@ -273,7 +277,10 @@ button {
   display: flex;
   justify-content: center;
   align-items: center;
-  transition: background 0.2s, color 0.2s, transform 0.1s;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.1s;
   flex-shrink: 0;
   padding: 0;
 }
@@ -290,4 +297,22 @@ button:active:not(:disabled) {
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.gradient-animation {
+  background: linear-gradient(90deg, gray, #fff, gray);
+  background-size: 300% 100%;
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: gradient-flow 10s linear infinite;
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 300% 0;
+  }
+  100% {
+    background-position: -300% 0;
+  }
 }
