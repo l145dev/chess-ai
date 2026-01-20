@@ -1,0 +1,3 @@
+nnue-chessbot-api.l145.be {
+    reverse_proxy chess-backend-container:80
+}
