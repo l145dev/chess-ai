@@ -288,7 +288,7 @@ const ChatLogic = () => {
             value={inputValue}
             onChange={handleInput}
             onKeyDown={handleKeyDown}
-            placeholder="The developer of this AI Chess Bot (Aryan) has an ELO of 500-600."
+            placeholder="Is this impractical?"
             rows={1}
             style={{ fieldSizing: "content" }}
           />

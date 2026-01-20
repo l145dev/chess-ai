@@ -59,8 +59,10 @@ const ChessBoard = ({ fen }: ChessBoardProps) => {
   return (
     <div
       style={{
-        width: "400px",
-        height: "400px",
+        width: "100%",
+        maxWidth: "400px",
+        aspectRatio: "1/1",
+        boxSizing: "border-box",
         display: "grid",
         gridTemplateColumns: "repeat(8, 1fr)",
         gridTemplateRows: "repeat(8, 1fr)",
@@ -124,7 +126,7 @@ const ChessBoard = ({ fen }: ChessBoardProps) => {
               )}
             </div>
           );
-        })
+        }),
       )}
     </div>
   );

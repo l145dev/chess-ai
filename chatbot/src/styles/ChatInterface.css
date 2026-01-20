@@ -1,6 +1,6 @@
 .chat-container {
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -319,5 +319,45 @@ button:disabled {
   }
   100% {
     background-position: -300% 0;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .messages-content {
+    padding: 10px;
+    gap: 15px;
+    max-width: 100%;
+  }
+
+  .empty-state h1 {
+    font-size: 1.5rem;
+  }
+
+  .cards-container {
+    gap: 10px;
+  }
+
+  .action-card {
+    width: calc(100% - 20px);
+  }
+
+  .presets-list button {
+    font-size: 0.9rem;
+    padding: 10px;
+  }
+
+  form {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  textarea {
+    font-size: 16px; /* Prevent zooming on iOS input */
+    padding: 8px;
+  }
+
+  .input-area {
+    padding: 10px;
   }
 }
