@@ -2,6 +2,12 @@
 
 A modern, interactive web interface for the Neural Network Updated Evaluation (NNUE) ChessBot.
 
+## Deployment
+
+- **Frontend**: Combell
+
+Available at: https://l145.be/nnue-chessbot
+
 ## Features
 
 - **Interactive Chat Interface**: Talk to the bot, ask chess questions, or command it to start games.

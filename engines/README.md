@@ -6,18 +6,20 @@ This directory contains the chess engines used by the bot.
 
 This is a custom chess engine powered by an NNUE (Efficiently Updatable Neural Network) architecture. It evaluates board positions to select the best move.
 
+### Deployment
+
+**Backend**: Azure VM (Containerized w/ Docker)
+
 ### Architecture
 
 The model uses a standard NNUE architecture with **HalfKP** features:
 
 1.  **Input**:
-
     - **HalfKP Features**: The board is represented by the interaction between the friendly King and every other piece on the board.
     - **Feature Indexing**: `KingSquare * 640 + PieceSquare * 10 + PieceType`.
     - Total features: ~41k sparse inputs per perspective.
 
 2.  **Feature Transformer**:
-
     - **EmbeddingBag**: Efficiently sums the weights of active features.
     - Projects the sparse input into a dense 256-dimensional vector for each perspective ("us" and "them").
 
@@ -186,7 +188,6 @@ graph TD
 
 4.  **Running the Bot**:
     The bot is integrated into `homemade.py`. You can start it using the provided PowerShell script:
-
     - **PowerShell**:
 
     ```powershell

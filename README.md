@@ -2,6 +2,13 @@
 
 Agentic Chess AI featuring a custom NNUE engine and C# PGN pipeline. Web UI Built with Astro/React/FastAPI, it offers two modes: a standalone Lichess engine and an interactive AI web chatbot for gameplay and chatting.
 
+## Deployment
+
+- **Backend**: Azure VM (Containerized w/ Docker)
+- **Frontend**: Combell
+
+Available at: https://l145.be/nnue-chessbot
+
 ## Features
 
 - **Custom NNUE Engine**: Implements a HalfKP architecture with dual accumulators for efficient evaluation.
